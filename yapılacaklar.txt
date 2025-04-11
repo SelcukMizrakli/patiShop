@@ -1,0 +1,8 @@
+**  üye profil sayfası olacak
+        favoriler
+        profili düzenleme seçenekleri olacak
+        adreslerim bilgisi olacak
+** sepet sayfası eklenecek ve ürünleri sepete ekleme kodu eklenecek
+** arama çubuğu çalışacak
+** filtreleme yapılacak
+** kullanıcı sayfasına da eklenecek bu tüm özellikler
