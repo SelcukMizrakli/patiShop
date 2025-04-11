@@ -5,4 +5,17 @@
 ** sepet sayfası eklenecek ve ürünleri sepete ekleme kodu eklenecek
 ** arama çubuğu çalışacak
 ** filtreleme yapılacak
+
 ** kullanıcı sayfasına da eklenecek bu tüm özellikler
+
+** anasayfaya eklenecekler: index.php sayfasında yer alan ürün listeleme buraya entegre edilecek. Profil butonları çalışacak.
+
+** index.php menüler düzenlenecek
+
+** profil.php sayfası menüler düzenlenecek, footer eklenecek ve bölümler arası geçişler diğer sayfadaki kodlara entegre edilecek
+
+** veri tabanı bağlantısı yapıldıktan sonra urundetay.php sayfası dahil tüm sayfalardaki gerekli kısımlar tekrar ayarlanacak.
+
+* admin paneli bölümler arası geçiş ayarlanacak.
+
+*** TÜM SİTELERDEKİ BİLGİLER VERİ TABANINA GÖRE TEKRAR GÜNCELLENECEK !!!!

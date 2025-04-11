@@ -1,105 +1,351 @@
-<?php
-session_start(); // Oturumu başlat
-
-// Eğer oturum verileri tanımlı değilse, kullanıcıyı giriş sayfasına yönlendir
-if (!isset($_SESSION['uyeAd']) || !isset($_SESSION['uyeMail'])) {
-    header("Location: girisYap.php");
-    exit();
-}
-
-// Oturumdaki verilerden kullanıcı bilgilerini al
-$kullaniciAdi = $_SESSION['uyeAd'];
-$kullaniciEmail = $_SESSION['uyeMail'];
-
-// Giriş yapıldığını belirtiyoruz, eğer ihtiyaç varsa
-$_SESSION["giris"] = sha1(md5("var"));
-// Ekstra çerez ayarı, sadece gerekiyorsa
-setcookie("kullanici", "msb", time() + 3600, "/");
-?>
-
-<!doctype html>
-<html lang="en" data-bs-theme="dark">
+<!DOCTYPE html>
+<html lang="tr">
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PatiShop</title>
-    <link rel="icon" href="/patishop/resim/patiShopLogo.png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/patishop/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatiShop - Evcil Hayvan Ürünleri</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .top-banner {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        header {
+            background-color: white;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            color: #4CAF50;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .logo i {
+            font-size: 28px;
+            margin-right: 8px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            flex-grow: 0.5;
+            max-width: 500px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 14px;
+        }
+
+        .search-bar button {
+            background-color: white;
+            border: none;
+            margin-left: -40px;
+            cursor: pointer;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-primary i {
+            margin-right: 5px;
+        }
+
+        nav {
+            background-color: #f9f9f9;
+            padding: 15px 40px;
+            border-bottom: 1px solid #eee;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        nav a i {
+            margin-right: 5px;
+        }
+
+        .hero {
+            background-color: #555;
+            color: white;
+            padding: 80px 40px;
+            text-align: center;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5));
+            background-size: cover;
+            background-position: center;
+        }
+
+        .hero h1 {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .btn-hero {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .section-title {
+            margin: 40px 0 20px 40px;
+            color: #333;
+            font-size: 24px;
+            border-left: 4px solid #4CAF50;
+            padding-left: 12px;
+        }
+
+        .category-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            margin-bottom: 40px;
+            gap: 20px;
+        }
+
+        .category-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            flex: 1;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .category-img {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .category-img img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .category-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .btn-secondary {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-block;
+            margin-top: auto;
+            align-self: flex-start;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            border-radius: 5px;
+        }
+
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .user-profile i {
+            margin-right: 5px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="anasayfa.php">
-                    <img src="/patishop/resim/patiShopLogo.png" style="height: 35px; width:40px;">
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mynavbar">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mynavbar">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="anasayfa.php">Anasayfa</a>
-                        </li>
-                        <form class="d-flex">
-                            <input class="form-control me-2" type="text" placeholder="Ara">
-                            <button class="btn btn-primary" type="button">Ara</button>
-                        </form>
-                    </ul>
-                        <div class="dropdown" style="margin-right: 5%;">
-                            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-                                </svg>
-                                <?php echo htmlspecialchars($kullaniciAdi); ?> (<?php echo htmlspecialchars($kullaniciEmail); ?>)
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="profil.php">Profil</a></li>
-                                <li><a class="dropdown-item" href="profil.php">Favoriler</a></li>
-                                <li><a class="dropdown-item" href="profil.php">Sepet</a></li>
-                                <li><a class="dropdown-item text-danger" href="cikisYap.php">Çıkış Yap</a></li>
-                            </ul>
-                        </div>
-                </div>
-            </div>
-        </nav>
-    </header>
-
-    <div class="container mt-5 text-center">
-        <h1>Hoşgeldiniz, <?php echo htmlspecialchars($kullaniciAdi); ?>!</h1>
-        <p><?php echo "PatiShop'a giriş yaptınız. Özel fırsatları kaçırmayın!";?></p>
+    <div class="top-banner">
+        Türkiye'nin her yerine ücretsiz kargo! 200 TL ve üzeri siparişlerde geçerlidir.
     </div>
 
-    <section class="featured-products">
-        <h2>Öne Çıkan Ürünler</h2>
-        <div class="product-grid">
-            <div class="product">
-                <img src="path/to/product1.jpg" alt="Ürün 1">
-                <h3>Ürün 1</h3>
-                <p>Fiyat: $19.99</p>
-            </div>
-            <div class="product">
-                <img src="path/to/product2.jpg" alt="Ürün 2">
-                <h3>Ürün 2</h3>
-                <p>Fiyat: $29.99</p>
-            </div>
-            <div class="product">
-                <img src="path/to/product3.jpg" alt="Ürün 3">
-                <h3>Ürün 3</h3>
-                <p>Fiyat: $39.99</p>
+    <header>
+        <a href="#" class="logo">
+            <i class="fas fa-paw"></i> PatiShop
+        </a>
+        <div class="search-bar">
+            <input type="text" placeholder="Ürün, kategori veya marka ara...">
+            <button type="submit"><i class="fas fa-search"></i></button>
+        </div>
+        <div class="user-actions">
+            <div class="dropdown">
+                <button class="user-profile">
+                    <i class="fas fa-user"></i> Hesabım
+                </button>
+                <div class="dropdown-content">
+                    <a href="#"><i class="fas fa-user-circle"></i> Profil</a>
+                    <a href="#"><i class="fas fa-heart"></i> Favorilerim</a>
+                    <a href="#"><i class="fas fa-box"></i> Siparişlerim</a>
+                    <a href="#"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                </div>
             </div>
         </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#"><i class="fas fa-home"></i> Ana Sayfa</a></li>
+            <li><a href="#"><i class="fas fa-dog"></i> Köpek</a></li>
+            <li><a href="#"><i class="fas fa-cat"></i> Kedi</a></li>
+            <li><a href="#"><i class="fas fa-fish"></i> Balık</a></li>
+            <li><a href="#"><i class="fas fa-crow"></i> Kuş</a></li>
+            <li><a href="#"><i class="fas fa-bug"></i> Kemirgen</a></li>
+            <li><a href="#"><i class="fas fa-percent"></i> Kampanyalar</a></li>
+            <li><a href="#"><i class="fas fa-star"></i> Yeni Ürünler</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero">
+        <h1>Patili Dostlarınız İçin En İyi Ürünler</h1>
+        <p>Kaliteli mama, sağlık ürünleri, oyuncaklar ve daha fazlası...</p>
+        <button class="btn-hero">Alışverişe Başla</button>
     </section>
 
-    <footer>
-        <p>İletişim: info@patishop.com</p>
-        <p>Sosyal medyada bizi takip edin!</p>
-    </footer>
+    <h2 class="section-title">Hayvan Kategorileri</h2>
+    <div class="category-container">
+        <div class="category-card">
+            <div class="category-img">
+                <img src="/api/placeholder/150/150" alt="Köpek Ürünleri">
+            </div>
+            <h3 class="category-title">Köpek Ürünleri</h3>
+            <p class="category-desc">Dostunuz için mama, oyuncak ve bakım ürünleri</p>
+            <button class="btn-secondary">Keşfet</button>
+        </div>
+        <div class="category-card">
+            <div class="category-img">
+                <img src="/api/placeholder/150/150" alt="Kedi Ürünleri">
+            </div>
+            <h3 class="category-title">Kedi Ürünleri</h3>
+            <p class="category-desc">Kediler için özel ürün ve aksesuarlar</p>
+            <button class="btn-secondary">Keşfet</button>
+        </div>
+        <div class="category-card">
+            <div class="category-img">
+                <img src="/api/placeholder/150/150" alt="Balık Ürünleri">
+            </div>
+            <h3 class="category-title">Balık Ürünleri</h3>
+            <p class="category-desc">Akvaryum ve balık bakım ürünleri</p>
+            <button class="btn-secondary">Keşfet</button>
+        </div>
+        <div class="category-card">
+            <div class="category-img">
+                <img src="/api/placeholder/150/150" alt="Kuş Ürünleri">
+            </div>
+            <h3 class="category-title">Kuş Ürünleri</h3>
+            <p class="category-desc">Kuşlar için kafes, yem ve aksesuarlar</p>
+            <button class="btn-secondary">Keşfet</button>
+        </div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <h2 class="section-title">Popüler Ürünler</h2>
+    <!-- Popüler ürünler içeriği buraya eklenebilir -->
 </body>
 
 </html>
