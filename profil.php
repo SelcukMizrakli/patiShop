@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PatiShop - Hesabım</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         :root {
             --primary-color: #4caf50;
@@ -12,6 +13,65 @@
             --light-gray: #f5f5f5;
             --dark-gray: #444;
             --white: #fff;
+        }
+
+        .header {
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            border-radius: 5px;
+        }
+
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .search-login {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-left: auto;
         }
 
         * {
@@ -31,15 +91,6 @@
             text-align: center;
             padding: 10px;
             font-size: 14px;
-        }
-
-        header {
-            background-color: var(--white);
-            padding: 15px 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .logo {
@@ -329,18 +380,62 @@
             margin-top: 25px;
         }
 
+        @media (max-width: 992px) {
+
+            .category-grid,
+            .product-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
         @media (max-width: 768px) {
-            .profile-container {
-                flex-direction: column;
+
+            .category-grid,
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
 
-            .sidebar {
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .search-container input {
+                width: 180px;
+            }
+        }
+
+        @media (max-width: 576px) {
+
+            .category-grid,
+            .product-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .logo-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-login {
+                margin-top: 15px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-container {
+                width: 70%;
+            }
+
+            .search-container input {
                 width: 100%;
             }
 
-            .form-row {
+            .navbar ul {
                 flex-direction: column;
-                gap: 0;
             }
         }
     </style>
@@ -352,35 +447,7 @@
         Türkiye'nin her yerine ücretsiz kargo! 200 TL ve üzeri siparişlerde geçerlidir.
     </div>
 
-    <!-- Header -->
-    <header>
-        <a href="#" class="logo">
-            <i>🐾</i> PatiShop
-        </a>
-
-        <div class="search-bar">
-            <input type="text" placeholder="Ürün, kategori veya marka ara...">
-            <button>🔍</button>
-        </div>
-
-        <div class="user-actions">
-            <a href="#">Giriş Yap</a>
-        </div>
-    </header>
-
-    <!-- Navigation -->
-    <nav>
-        <ul class="nav-links">
-            <li><a href="#">Ana Sayfa</a></li>
-            <li><a href="#">Köpek</a></li>
-            <li><a href="#">Kedi</a></li>
-            <li><a href="#">Balık</a></li>
-            <li><a href="#">Kuş</a></li>
-            <li><a href="#">Kemirgen</a></li>
-            <li><a href="#">Kampanyalar</a></li>
-            <li><a href="#">Yeni Ürünler</a></li>
-        </ul>
-    </nav>
+    <?php include 'headerHesap.php'; ?>
 
     <!-- Main Content -->
     <main>
@@ -408,25 +475,25 @@
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="firstName">Ad</label>
-                                    <input type="text" id="firstName" class="form-control" value="Ahmet">
+                                    <input type="text" id="firstName" class="form-control" value="Selçuk">
                                 </div>
                             </div>
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="lastName">Soyad</label>
-                                    <input type="text" id="lastName" class="form-control" value="Yılmaz">
+                                    <input type="text" id="lastName" class="form-control" value="Mızraklı">
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label for="email">E-posta</label>
-                            <input type="email" id="email" class="form-control" value="ahmet.yilmaz@email.com">
+                            <input type="email" id="email" class="form-control" value="selcukmizrakli20@gmail.com">
                         </div>
 
                         <div class="form-group">
                             <label for="phone">Telefon</label>
-                            <input type="tel" id="phone" class="form-control" value="0555 123 4567">
+                            <input type="tel" id="phone" class="form-control" value="0531 317 3971">
                         </div>
 
                         <div class="form-row">
@@ -643,10 +710,10 @@
                                 <h4>Ev Adresi</h4>
                                 <span style="background: #e8f5e9; color: #2e7d32; padding: 3px 10px; border-radius: 20px; font-size: 12px;">Varsayılan</span>
                             </div>
-                            <p style="margin-bottom: 10px;">Ahmet Yılmaz</p>
+                            <p style="margin-bottom: 10px;">Selçuk Mızraklı</p>
                             <p style="margin-bottom: 5px;">Atatürk Mahallesi, Gül Sokak No:42 D:5</p>
                             <p style="margin-bottom: 5px;">Kadıköy / İstanbul</p>
-                            <p style="margin-bottom: 10px;">0555 123 4567</p>
+                            <p style="margin-bottom: 10px;">0531 317 3971</p>
 
                             <div style="display: flex; gap: 10px;">
                                 <a href="#" class="btn btn-outline">Düzenle</a>
@@ -658,10 +725,10 @@
                             <div style="margin-bottom: 10px;">
                                 <h4>İş Adresi</h4>
                             </div>
-                            <p style="margin-bottom: 10px;">Ahmet Yılmaz</p>
+                            <p style="margin-bottom: 10px;">Selçuk Mızraklı</p>
                             <p style="margin-bottom: 5px;">Barbaros Bulvarı, Yıldız Plaza No:127 Kat:8</p>
                             <p style="margin-bottom: 5px;">Beşiktaş / İstanbul</p>
-                            <p style="margin-bottom: 10px;">0555 123 4567</p>
+                            <p style="margin-bottom: 10px;">0531 317 3971</p>
 
                             <div style="display: flex; gap: 10px;">
                                 <a href="#" class="btn btn-outline">Düzenle</a>

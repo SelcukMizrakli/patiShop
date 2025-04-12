@@ -285,6 +285,43 @@
             font-weight: bold;
             font-style: normal;
         }
+
+        /* Modal arka plan */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        /* Modal içeriği */
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        /* Kapatma butonu */
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: red;
+        }
     </style>
 </head>
 
@@ -303,9 +340,6 @@
                 <h3>PatiShop Admin</h3>
             </div>
 
-            <a href="#" class="menu-item active">
-                <i class="fa">📊</i> Dashboard
-            </a>
             <a href="#" class="menu-item">
                 <i class="fa">📦</i> Ürünler
             </a>
@@ -322,9 +356,6 @@
                 <i class="fa">🔖</i> Kampanyalar
             </a>
             <a href="#" class="menu-item">
-                <i class="fa">💬</i> Yorumlar
-            </a>
-            <a href="#" class="menu-item">
                 <i class="fa">⚙️</i> Ayarlar
             </a>
             <a href="#" class="menu-item">
@@ -337,41 +368,9 @@
             <div class="content-header">
                 <h2>Dashboard</h2>
                 <div>
-                    <button class="btn">
+                    <button class="btn" onclick="openNewProductModal()">
                         <i class="fa">➕</i> Yeni Ürün Ekle
                     </button>
-                </div>
-            </div>
-
-            <!-- İstatistikler -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <div class="stat-icon">📦</div>
-                    <div class="stat-info">
-                        <h3>1,245</h3>
-                        <span>Toplam Ürün</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🛒</div>
-                    <div class="stat-info">
-                        <h3>89</h3>
-                        <span>Günlük Sipariş</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">👥</div>
-                    <div class="stat-info">
-                        <h3>8,305</h3>
-                        <span>Toplam Kullanıcı</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">💰</div>
-                    <div class="stat-info">
-                        <h3>₺24,560</h3>
-                        <span>Günlük Gelir</span>
-                    </div>
                 </div>
             </div>
 
@@ -447,7 +446,7 @@
                     <div class="tab-container">
                         <div class="tabs">
                             <div class="tab active">Ürün Listesi</div>
-                            <div class="tab">Yeni Ürün Ekle</div>
+                            <div class="tab" onclick="openNewProductModal()">Yeni Ürün Ekle</div>
                         </div>
 
                         <div class="tab-content">
@@ -471,7 +470,13 @@
                                         <td>45</td>
                                         <td>₺450,00</td>
                                         <td class="action-btns">
-                                            <button class="btn btn-sm btn-warning">Düzenle</button>
+                                            <button class="btn btn-sm btn-warning" onclick="openUpdateProductModal({
+                                                name: 'Royal Canin Köpek Maması',
+                                                category: 'Köpek Ürünleri',
+                                                price: 450,
+                                                stock: 45,
+                                                description: 'Köpekler için özel formüle edilmiş mama.'
+                                            })">Düzenle</button>
                                             <button class="btn btn-sm btn-danger">Sil</button>
                                         </td>
                                     </tr>
@@ -504,12 +509,11 @@
                 </div>
             </div>
 
-            <!-- Yeni Ürün Formu (Gizli, tab açılınca gösterilecek) -->
-            <div class="card" style="display: none;">
-                <div class="card-header">
-                    Yeni Ürün Ekle
-                </div>
-                <div class="card-body">
+            <!-- Yeni Ürün Ekle Modal -->
+            <div id="newProductModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeNewProductModal()">&times;</span>
+                    <h2>Yeni Ürün Ekle</h2>
                     <form>
                         <div class="form-group">
                             <label for="productName">Ürün Adı</label>
@@ -518,13 +522,14 @@
 
                         <div class="form-group">
                             <label for="productCategory">Kategori</label>
-                            <select id="productCategory" class="form-control">
-                                <option>Kategori Seçiniz</option>
-                                <option>Köpek Ürünleri</option>
-                                <option>Kedi Ürünleri</option>
-                                <option>Balık Ürünleri</option>
-                                <option>Kuş Ürünleri</option>
-                            </select>
+                            <input type="text" id="productCategory" class="form-control" placeholder="Kategori arayın" onfocus="showAllCategories()" oninput="filterCategories()">
+                            <div id="dropdownCategory" class="dropdown" style="margin-top: 10px; display: none; border: 1px solid var(--border-color); border-radius: 4px; background-color: white; max-height: 150px; overflow-y: auto;">
+                                <div class="dropdown-item" onclick="selectCategory('Köpek Ürünleri')">Köpek Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategory('Kedi Ürünleri')">Kedi Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategory('Balık Ürünleri')">Balık Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategory('Kuş Ürünleri')">Kuş Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategory('Hamster Ürünleri')">Hamster Ürünleri</div>
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -549,11 +554,151 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="campaignSeason">Kampanya</label>
+                            <input type="text" id="campaignSeason" class="form-control" placeholder="Kampanya arayın" onfocus="showAllCampaigns()" oninput="filterCampaigns()">
+                            <div id="dropdownCampaign" class="dropdown" style="margin-top: 10px; display: none; border: 1px solid var(--border-color); border-radius: 4px; background-color: white; max-height: 150px; overflow-y: auto;">
+                                <div class="dropdown-item" onclick="selectCampaign('Kampanya Yok')">Kampanya yok</div>
+                                <div class="dropdown-item" onclick="selectCampaign('Yaz Kampanyası')">Yaz Kampanyası</div>
+                                <div class="dropdown-item" onclick="selectCampaign('Kış Kampanyası')">Kış Kampanyası</div>
+                                <div class="dropdown-item" onclick="selectCampaign('Bahar Kampanyası')">Bahar Kampanyası</div>
+                                <div class="dropdown-item" onclick="selectCampaign('Sonbahar Kampanyası')">Sonbahar Kampanyası</div>
+                                <div class="dropdown-item" onclick="selectCampaign('Yılbaşı Kampanyası')">Yılbaşı Kampanyası</div>
+                            </div>
+                        </div>
+                        <script>
+                            function showAllCampaigns() {
+                                const dropdownList = document.getElementById('dropdownCampaign');
+                                const items = dropdownList.getElementsByClassName('dropdown-item');
+                                for (let i = 0; i < items.length; i++) {
+                                    items[i].style.display = 'block'; // Tüm öğeleri görünür yap
+                                }
+                                dropdownList.style.display = 'block'; // Dropdown'u görünür yap
+                            }
+
+                            function filterCampaigns() {
+                                const input = document.getElementById('campaignSeason').value.toLowerCase();
+                                const dropdownList = document.getElementById('dropdownCampaign');
+                                const items = dropdownList.getElementsByClassName('dropdown-item');
+                                let hasVisibleItem = false;
+
+                                for (let i = 0; i < items.length; i++) {
+                                    const itemText = items[i].textContent.toLowerCase();
+                                    const isVisible = itemText.includes(input);
+                                    items[i].style.display = isVisible ? 'block' : 'none';
+                                    if (isVisible) hasVisibleItem = true;
+                                }
+
+                                // Dropdown görünürlüğünü ayarla
+                                dropdownList.style.display = hasVisibleItem || input === '' ? 'block' : 'none';
+                            }
+
+                            function selectCampaign(campaign) {
+                                const input = document.getElementById('campaignSeason');
+                                input.value = campaign;
+                                document.getElementById('dropdownCampaign').style.display = 'none';
+                            }
+
+                            // Dropdown dışında bir yere tıklanınca dropdown'u kapat
+                            document.addEventListener('click', function(event) {
+                                const dropdown = document.getElementById('dropdownCampaign');
+                                const input = document.getElementById('campaignSeason');
+                                if (!dropdown.contains(event.target) && event.target !== input) {
+                                    dropdown.style.display = 'none';
+                                }
+                            });
+                        </script>
+
+                        <div class="form-group">
                             <label for="productDescription">Ürün Açıklaması</label>
                             <textarea id="productDescription" class="form-control" placeholder="Ürün detaylarını giriniz"></textarea>
                         </div>
 
                         <button type="submit" class="btn">Ürünü Kaydet</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ürün Güncelleme Modal -->
+            <div id="updateProductModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeUpdateProductModal()">&times;</span>
+                    <h2>Ürün Bilgilerini Güncelle</h2>
+                    <form>
+                        <div class="form-group">
+                            <label for="updateProductName">Ürün Adı</label>
+                            <input type="text" id="updateProductName" class="form-control" placeholder="Ürün adını giriniz">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="updateProductCategory">Kategori</label>
+                            <input type="text" id="updateProductCategory" class="form-control" placeholder="Kategori arayın" onfocus="showAllCategoriesForUpdate()" oninput="filterCategoriesForUpdate()">
+                            <div id="dropdownCategoryUpdate" class="dropdown" style="margin-top: 10px; display: none; border: 1px solid var(--border-color); border-radius: 4px; background-color: white; max-height: 150px; overflow-y: auto;">
+                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Köpek Ürünleri')">Köpek Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Kedi Ürünleri')">Kedi Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Balık Ürünleri')">Balık Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Kuş Ürünleri')">Kuş Ürünleri</div>
+                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Hamster Ürünleri')">Hamster Ürünleri</div>
+                            </div>
+                        </div>
+                        <script>
+                            function showAllCategoriesForUpdate() {
+                                const dropdownList = document.getElementById('dropdownCategoryUpdate');
+                                const items = dropdownList.getElementsByClassName('dropdown-item');
+                                for (let i = 0; i < items.length; i++) {
+                                    items[i].style.display = 'block'; // Tüm öğeleri görünür yap
+                                }
+                                dropdownList.style.display = 'block'; // Dropdown'u görünür yap
+                            }
+
+                            function filterCategoriesForUpdate() {
+                                const input = document.getElementById('updateProductCategory').value.toLowerCase();
+                                const dropdownList = document.getElementById('dropdownCategoryUpdate');
+                                const items = dropdownList.getElementsByClassName('dropdown-item');
+                                let hasVisibleItem = false;
+
+                                for (let i = 0; i < items.length; i++) {
+                                    const itemText = items[i].textContent.toLowerCase();
+                                    const isVisible = itemText.includes(input);
+                                    items[i].style.display = isVisible ? 'block' : 'none';
+                                    if (isVisible) hasVisibleItem = true;
+                                }
+
+                                // Dropdown görünürlüğünü ayarla
+                                dropdownList.style.display = hasVisibleItem || input === '' ? 'block' : 'none';
+                            }
+
+                            function selectCategoryForUpdate(category) {
+                                const input = document.getElementById('updateProductCategory');
+                                input.value = category;
+                                document.getElementById('dropdownCategoryUpdate').style.display = 'none';
+                            }
+
+                            // Dropdown dışında bir yere tıklanınca dropdown'u kapat
+                            document.addEventListener('click', function(event) {
+                                const dropdown = document.getElementById('dropdownCategoryUpdate');
+                                const input = document.getElementById('updateProductCategory');
+                                if (!dropdown.contains(event.target) && event.target !== input) {
+                                    dropdown.style.display = 'none';
+                                }
+                            });
+                        </script>
+
+                        <div class="form-group">
+                            <label for="updateProductPrice">Fiyat (₺)</label>
+                            <input type="number" id="updateProductPrice" class="form-control" placeholder="0.00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="updateProductStock">Stok Miktarı</label>
+                            <input type="number" id="updateProductStock" class="form-control" placeholder="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="updateProductDescription">Ürün Açıklaması</label>
+                            <textarea id="updateProductDescription" class="form-control" placeholder="Ürün açıklamasını giriniz"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn">Güncelle</button>
                     </form>
                 </div>
             </div>
@@ -609,5 +754,81 @@
         </div>
     </div>
 </body>
+<script>
+    function showAllCategories() {
+        const dropdownList = document.getElementById('dropdownCategory');
+        const items = dropdownList.getElementsByClassName('dropdown-item');
+        for (let i = 0; i < items.length; i++) {
+            items[i].style.display = 'block'; // Tüm öğeleri görünür yap
+        }
+        dropdownList.style.display = 'block'; // Dropdown'u görünür yap
+    }
+
+    function filterCategories() {
+        const input = document.getElementById('productCategory').value.toLowerCase();
+        const dropdownList = document.getElementById('dropdownCategory');
+        const items = dropdownList.getElementsByClassName('dropdown-item');
+        let hasVisibleItem = false;
+
+        for (let i = 0; i < items.length; i++) {
+            const itemText = items[i].textContent.toLowerCase();
+            const isVisible = itemText.includes(input);
+            items[i].style.display = isVisible ? 'block' : 'none';
+            if (isVisible) hasVisibleItem = true;
+        }
+
+        // Dropdown görünürlüğünü ayarla
+        dropdownList.style.display = hasVisibleItem || input === '' ? 'block' : 'none';
+    }
+
+    function selectCategory(category) {
+        const input = document.getElementById('productCategory');
+        input.value = category;
+        document.getElementById('dropdownCategory').style.display = 'none';
+    }
+
+    // Dropdown dışında bir yere tıklanınca dropdown'u kapat
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('dropdownCategory');
+        const input = document.getElementById('productCategory');
+        if (!dropdown.contains(event.target) && event.target !== input) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    function closeNewProductModal() {
+        const modal = document.getElementById('newProductModal');
+        modal.style.display = 'none';
+    }
+    function openUpdateProductModal(product) {
+        // Modalı aç
+        const modal = document.getElementById('updateProductModal');
+        modal.style.display = 'flex';
+
+        // Ürün bilgilerini modal formuna doldur
+        document.getElementById('updateProductName').value = product.name;
+        document.getElementById('updateProductCategory').value = product.category;
+        document.getElementById('updateProductPrice').value = product.price;
+        document.getElementById('updateProductStock').value = product.stock;
+        document.getElementById('updateProductDescription').value = product.description;
+    }
+
+    function closeUpdateProductModal() {
+        // Modalı kapat
+        const modal = document.getElementById('updateProductModal');
+        modal.style.display = 'none';
+    }
+    function openNewProductModal() {
+        // Modalı aç
+        const modal = document.getElementById('newProductModal');
+        modal.style.display = 'flex';
+    }
+
+    function closeNewProductModal() {
+        // Modalı kapat
+        const modal = document.getElementById('newProductModal');
+        modal.style.display = 'none';
+    }
+</script>
 
 </html>
