@@ -1,3 +1,8 @@
+<?php
+// filepath: c:\xampp\htdocs\patishop\anasayfa.php
+include 'ayar.php';
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="tr">
 
@@ -556,17 +561,22 @@
                         <button type="submit"><i class="fas fa-search"></i></button>
                     </div>
                     <div class="user-actions">
-                        <div class="dropdown">
-                            <button class="user-profile">
-                                <i class="fas fa-user"></i> Hesabım
-                            </button>
-                            <div class="dropdown-content">
-                                <a href="#"><i class="fas fa-user-circle"></i> Profil</a>
-                                <a href="#"><i class="fas fa-heart"></i> Favorilerim</a>
-                                <a href="#"><i class="fas fa-box"></i> Siparişlerim</a>
-                                <a href="#"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                        <?php if (isset($_SESSION['uyeID'])): ?>
+                            <div class="dropdown">
+                                <button class="user-profile">
+                                    <i class="fas fa-user"></i> <?php echo $_SESSION['uyeAd']. ' ' .$_SESSION['uyeSoyad']; ?>
+                                </button>
+                                <div class="dropdown-content">
+                                    <a href="#"><i class="fas fa-user-circle"></i> Profil</a>
+                                    <a href="#"><i class="fas fa-heart"></i> Favorilerim</a>
+                                    <a href="#"><i class="fas fa-box"></i> Siparişlerim</a>
+                                    <a href="#"><i class="fas fa-box"></i> Sepetim</a>
+                                    <a href="cikisYap.php"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                                </div>
                             </div>
-                        </div>
+                        <?php else: ?>
+                            <button class="login-btn" id="loginBtn"><i class="fas fa-user"></i> Giriş Yap</button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -576,14 +586,18 @@
         <nav class="navbar">
             <div class="container">
                 <ul>
-                    <li><a href="#"><i class="fas fa-home"></i> Ana Sayfa</a></li>
-                    <li><a href="#"><i class="fas fa-dog"></i> Köpek</a></li>
-                    <li><a href="#"><i class="fas fa-cat"></i> Kedi</a></li>
-                    <li><a href="#"><i class="fas fa-fish"></i> Balık</a></li>
-                    <li><a href="#"><i class="fas fa-dove"></i> Kuş</a></li>
-                    <li><a href="#"><i class="fas fa-rabbit"></i> Kemirgen</a></li>
-                    <li><a href="#"><i class="fas fa-percentage"></i> Kampanyalar</a></li>
-                    <li><a href="#"><i class="fas fa-star"></i> Yeni Ürünler</a></li>
+                    <?php
+                    $sql = "SELECT hayvanTurAdi, hayvanTurSlug FROM t_hayvanturleri";
+                    $result = $baglan->query($sql);
+
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo '<li><a href="kategori.php?tur=' . $row['hayvanTurSlug'] . '"><i class="fas fa-paw"></i> ' . $row['hayvanTurAdi'] . '</a></li>';
+                        }
+                    } else {
+                        echo '<li>Kategori bulunamadı.</li>';
+                    }
+                    ?>
                 </ul>
             </div>
         </nav>
@@ -604,38 +618,25 @@
         <section class="category-section">
             <h2 class="section-title">Hayvan Kategorileri</h2>
             <div class="category-grid">
-                <div class="category-card">
-                    <img src="/api/placeholder/300/150" alt="Köpek Ürünleri">
-                    <div class="content">
-                        <h3>Köpek Ürünleri</h3>
-                        <p>Dostunuz için mama, oyuncak ve bakım ürünleri</p>
-                        <a href="#" class="cta-button">Keşfet</a>
-                    </div>
-                </div>
-                <div class="category-card">
-                    <img src="/api/placeholder/300/150" alt="Kedi Ürünleri">
-                    <div class="content">
-                        <h3>Kedi Ürünleri</h3>
-                        <p>Kediler için özel ürün ve aksesuarlar</p>
-                        <a href="#" class="cta-button">Keşfet</a>
-                    </div>
-                </div>
-                <div class="category-card">
-                    <img src="/api/placeholder/300/150" alt="Balık Ürünleri">
-                    <div class="content">
-                        <h3>Balık Ürünleri</h3>
-                        <p>Akvaryum ve balık bakım ürünleri</p>
-                        <a href="#" class="cta-button">Keşfet</a>
-                    </div>
-                </div>
-                <div class="category-card">
-                    <img src="/api/placeholder/300/150" alt="Kuş Ürünleri">
-                    <div class="content">
-                        <h3>Kuş Ürünleri</h3>
-                        <p>Kuşlar için kafes, yem ve aksesuarlar</p>
-                        <a href="#" class="cta-button">Keşfet</a>
-                    </div>
-                </div>
+                <?php
+                $sql = "SELECT kategoriAdi, kategoriSlug, kategoriIkonUrl FROM t_kategori WHERE kategoriDurum = 1";
+                $result = $baglan->query($sql);
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo '<div class="category-card">';
+                        echo '<img src="' . $row['kategoriIkonUrl'] . '" alt="' . $row['kategoriAdi'] . '">';
+                        echo '<div class="content">';
+                        echo '<h3>' . $row['kategoriAdi'] . '</h3>';
+                        echo '<p>' . $row['kategoriAdi'] . ' için özel ürünler</p>';
+                        echo '<a href="kategori.php?kategori=' . $row['kategoriSlug'] . '" class="cta-button">Keşfet</a>';
+                        echo '</div>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo '<p>Kategori bulunamadı.</p>';
+                }
+                ?>
             </div>
         </section>
 
@@ -643,132 +644,65 @@
         <section class="product-section">
             <h2 class="section-title">Popüler Ürünler</h2>
             <div class="product-grid">
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Köpek Maması">
-                    <div class="content">
-                        <h3>Premium Köpek Maması - 15kg</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star-half-alt"></i>
-                        </div>
-                        <div class="price">499,90 TL</div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Kedi Maması">
-                    <div class="content">
-                        <h3>Sterilised Kedi Maması - 10kg</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <div class="price">449,90 TL</div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Köpek Oyuncağı">
-                    <div class="content">
-                        <h3>Dayanıklı Köpek Oyuncağı - Kemik</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="far fa-star"></i>
-                        </div>
-                        <div class="price">89,90 TL</div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Kedi Kumu">
-                    <div class="content">
-                        <h3>Kokusuz Kedi Kumu - 10lt</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star-half-alt"></i>
-                        </div>
-                        <div class="price">179,90 TL</div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
+                <?php
+                $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler LIMIT 4";
+                $result = $baglan->query($sql);
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
+                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
+                        $resimResult = $baglan->query($resimSql);
+                        $resim = $resimResult->fetch_assoc();
+
+                        echo '<div class="product-card">';
+                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<div class="content">';
+                        echo '<h3>' . $row['urunAdi'] . '</h3>';
+                        echo '<div class="price">' . number_format($row['urunFiyat'], 2) . ' TL</div>';
+                        echo '<button class="add-to-cart" onclick="addToCart(' . $row['urunID'] . ')">Sepete Ekle</button>';
+                        echo '</div>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo '<p>Ürün bulunamadı.</p>';
+                }
+                ?>
             </div>
         </section>
 
         <section class="product-section">
             <h2 class="section-title">İndirimli Ürünler</h2>
             <div class="product-grid">
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Kuş Yemi">
-                    <div class="content">
-                        <h3>Muhabbet Kuşu Karışık Yem - 1kg</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="far fa-star"></i>
-                        </div>
-                        <div class="price">59,90 TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">79,90 TL</span></div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Balık Yemi">
-                    <div class="content">
-                        <h3>Tropik Balık Yemi - 250ml</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star-half-alt"></i>
-                            <i class="far fa-star"></i>
-                        </div>
-                        <div class="price">49,90 TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">69,90 TL</span></div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Kedi Tırmalama Tahtası">
-                    <div class="content">
-                        <h3>Kedi Tırmalama Tahtası</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <div class="price">129,90 TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">199,90 TL</span></div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <img src="/api/placeholder/300/200" alt="Köpek Tasması">
-                    <div class="content">
-                        <h3>Ayarlanabilir Köpek Tasması</h3>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="far fa-star"></i>
-                        </div>
-                        <div class="price">89,90 TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">119,90 TL</span></div>
-                        <button class="add-to-cart">Sepete Ekle</button>
-                    </div>
-                </div>
+                <?php
+                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, u.urunResimID, k.kampanyaIndirimYuzdesi 
+                        FROM t_urunler u
+                        INNER JOIN t_kampanya k ON u.urunID = k.kampanyaID
+                        LIMIT 4";
+                $result = $baglan->query($sql);
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
+                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
+                        $resimResult = $baglan->query($resimSql);
+                        $resim = $resimResult->fetch_assoc();
+
+                        $indirimliFiyat = $row['urunFiyat'] * (1 - $row['kampanyaIndirimYuzdesi'] / 100);
+
+                        echo '<div class="product-card">';
+                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<div class="content">';
+                        echo '<h3>' . $row['urunAdi'] . '</h3>';
+                        echo '<div class="price">' . number_format($indirimliFiyat, 2) . ' TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">' . number_format($row['urunFiyat'], 2) . ' TL</span></div>';
+                        echo '<button class="add-to-cart" onclick="addToCart(' . $row['urunID'] . ')">Sepete Ekle</button>';
+                        echo '</div>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo '<p>İndirimli ürün bulunamadı.</p>';
+                }
+                ?>
             </div>
         </section>
     </main>
@@ -831,7 +765,7 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2 style="text-align: center; margin-bottom: 20px;">Giriş Yap</h2>
-            <form>
+            <form action="girisYap.php" method="POST">
                 <div class="form-group">
                     <label for="email">E-posta</label>
                     <input type="email" id="email" name="email" required>
@@ -841,10 +775,10 @@
                     <input type="password" id="password" name="password" required>
                 </div>
                 <button type="submit" class="form-submit">Giriş Yap</button>
-                <p style="text-align: center; margin-top: 15px;">
-                    Hesabınız yok mu? <button id="registerbtn" style="color: #4CAF50; text-decoration: none;">Kayıt ol</button>
-                </p>
             </form>
+            <p style="text-align: center; margin-top: 15px;">
+                Hesabınız yok mu? <button id="registerbtn" style="color: #4CAF50; text-decoration: none;">Kayıt ol</button>
+            </p>
         </div>
     </div>
     <!-- Register Modal -->

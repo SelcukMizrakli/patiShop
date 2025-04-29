@@ -1,3 +1,24 @@
+<?php
+// filepath: c:\xampp\htdocs\patishop\profil.php
+include 'ayar.php';
+session_start();
+
+// Kullanıcı oturum kontrolü
+if (!isset($_SESSION['uyeID'])) {
+    header('Location: index.php');
+    exit;
+}
+
+$uyeID = $_SESSION['uyeID'];
+$sql = "SELECT uyeAd, uyeSoyad, uyeMail, uyeTelNo FROM t_uyeler WHERE uyeID = $uyeID";
+$result = $baglan->query($sql);
+
+if ($result->num_rows > 0) {
+    $user = $result->fetch_assoc();
+} else {
+    die("Kullanıcı bilgileri bulunamadı.");
+}
+?>
 <!DOCTYPE html>
 <html lang="tr">
 
@@ -470,45 +491,30 @@
                 <div id="profile" class="tab-content active">
                     <h2 class="content-title">Profil Bilgileri</h2>
 
-                    <form>
+                    <form action="profilGuncelle.php" method="POST">
                         <div class="form-row">
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="firstName">Ad</label>
-                                    <input type="text" id="firstName" class="form-control" value="Selçuk">
+                                    <input type="text" id="firstName" name="uyeAd" class="form-control" value="<?php echo $user['uyeAd']; ?>">
                                 </div>
                             </div>
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="lastName">Soyad</label>
-                                    <input type="text" id="lastName" class="form-control" value="Mızraklı">
+                                    <input type="text" id="lastName" name="uyeSoyad" class="form-control" value="<?php echo $user['uyeSoyad']; ?>">
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label for="email">E-posta</label>
-                            <input type="email" id="email" class="form-control" value="selcukmizrakli20@gmail.com">
+                            <input type="email" id="email" name="uyeMail" class="form-control" value="<?php echo $user['uyeMail']; ?>">
                         </div>
 
                         <div class="form-group">
                             <label for="phone">Telefon</label>
-                            <input type="tel" id="phone" class="form-control" value="0531 317 3971">
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="currentPassword">Mevcut Şifre</label>
-                                    <input type="password" id="currentPassword" class="form-control">
-                                </div>
-                            </div>
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="newPassword">Yeni Şifre</label>
-                                    <input type="password" id="newPassword" class="form-control">
-                                </div>
-                            </div>
+                            <input type="tel" id="phone" name="uyeTelNo" class="form-control" value="<?php echo $user['uyeTelNo']; ?>">
                         </div>
 
                         <div class="form-actions">
@@ -520,68 +526,32 @@
                 <!-- Siparişlerim -->
                 <div id="orders" class="tab-content">
                     <h2 class="content-title">Geçmiş Siparişlerim</h2>
+                    <?php
+                    $sql = "SELECT s.siparisID, s.siparisOdemeTarih, s.siparisDurum, 
+                                   SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar
+                            FROM t_siparis s
+                            INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
+                            WHERE s.siparisUyeID = $uyeID
+                            GROUP BY s.siparisID
+                            ORDER BY s.siparisOdemeTarih DESC";
+                    $result = $baglan->query($sql);
 
-                    <div class="order-card">
-                        <div class="order-header">
-                            <span class="order-id">Sipariş #12345</span>
-                            <span class="order-date">15 Mart 2025</span>
-                            <span class="order-status status-delivered">Teslim Edildi</span>
-                        </div>
-
-                        <div class="product-list">
-                            <div class="product-item">
-                                <div class="product-image"></div>
-                                <div class="product-details">
-                                    <div class="product-name">Royal Canin Kedi Maması</div>
-                                    <div class="product-meta">1 kg, Yetişkin</div>
-                                </div>
-                                <div class="product-price">249 ₺</div>
-                            </div>
-                            <div class="product-item">
-                                <div class="product-image"></div>
-                                <div class="product-details">
-                                    <div class="product-name">Kedi Oyuncağı Set</div>
-                                    <div class="product-meta">5 Parça</div>
-                                </div>
-                                <div class="product-price">120 ₺</div>
-                            </div>
-                        </div>
-
-                        <div class="order-total">
-                            Toplam: 369 ₺
-                        </div>
-                    </div>
-
-                    <div class="order-card">
-                        <div class="order-header">
-                            <span class="order-id">Sipariş #12289</span>
-                            <span class="order-date">2 Şubat 2025</span>
-                            <span class="order-status status-delivered">Teslim Edildi</span>
-                        </div>
-
-                        <div class="product-list">
-                            <div class="product-item">
-                                <div class="product-image"></div>
-                                <div class="product-details">
-                                    <div class="product-name">Pro Plan Köpek Maması</div>
-                                    <div class="product-meta">3 kg, Yavru</div>
-                                </div>
-                                <div class="product-price">450 ₺</div>
-                            </div>
-                            <div class="product-item">
-                                <div class="product-image"></div>
-                                <div class="product-details">
-                                    <div class="product-name">Köpek Tasması</div>
-                                    <div class="product-meta">Medium, Kırmızı</div>
-                                </div>
-                                <div class="product-price">85 ₺</div>
-                            </div>
-                        </div>
-
-                        <div class="order-total">
-                            Toplam: 535 ₺
-                        </div>
-                    </div>
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            $durum = ($row['siparisDurum'] == 0) ? "Hazırlanıyor" : (($row['siparisDurum'] == 1) ? "Kargoya Verildi" : "Teslim Edildi");
+                            echo '<div class="order-card">';
+                            echo '<div class="order-header">';
+                            echo '<span class="order-id">Sipariş #' . $row['siparisID'] . '</span>';
+                            echo '<span class="order-date">' . $row['siparisOdemeTarih'] . '</span>';
+                            echo '<span class="order-status">' . $durum . '</span>';
+                            echo '</div>';
+                            echo '<div class="order-total">Toplam: ' . number_format($row['toplamTutar'], 2) . ' TL</div>';
+                            echo '</div>';
+                        }
+                    } else {
+                        echo '<p>Henüz siparişiniz bulunmamaktadır.</p>';
+                    }
+                    ?>
                 </div>
 
                 <!-- Güncel Siparişim -->
@@ -650,95 +620,59 @@
                 <!-- Favorilerim -->
                 <div id="favorites" class="tab-content">
                     <h2 class="content-title">Favori Ürünlerim</h2>
+                    <?php
+                    $sql = "SELECT f.favoriID, u.urunAdi, u.urunFiyat, r.resimYolu, f.favoriOlusturmaTarih
+                            FROM t_favoriler f
+                            INNER JOIN t_urunler u ON f.favoriUrunID = u.urunID
+                            LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
+                            WHERE f.favoriUyeID = $uyeID";
+                    $result = $baglan->query($sql);
 
-                    <div class="favorite-card">
-                        <div class="product-item">
-                            <div class="product-image"></div>
-                            <div class="product-details">
-                                <div class="product-name">Royal Canin Sterilised Kedi Maması</div>
-                                <div class="product-meta">10 kg</div>
-                                <div class="fav-date">12 Mart 2025 tarihinde eklendi</div>
-                            </div>
-                            <div class="product-price">899 ₺</div>
-                        </div>
-                        <div class="favorite-actions">
-                            <a href="#" class="btn btn-primary">Sepete Ekle</a>
-                            <a href="#" class="btn btn-outline">Favorilerden Çıkar</a>
-                        </div>
-                    </div>
-
-                    <div class="favorite-card">
-                        <div class="product-item">
-                            <div class="product-image"></div>
-                            <div class="product-details">
-                                <div class="product-name">Otomatik Su Kabı</div>
-                                <div class="product-meta">2.5 Litre</div>
-                                <div class="fav-date">29 Mart 2025 tarihinde eklendi</div>
-                            </div>
-                            <div class="product-price">175 ₺</div>
-                        </div>
-                        <div class="favorite-actions">
-                            <a href="#" class="btn btn-primary">Sepete Ekle</a>
-                            <a href="#" class="btn btn-outline">Favorilerden Çıkar</a>
-                        </div>
-                    </div>
-
-                    <div class="favorite-card">
-                        <div class="product-item">
-                            <div class="product-image"></div>
-                            <div class="product-details">
-                                <div class="product-name">Kedi Tırmalama Tahtası</div>
-                                <div class="product-meta">Büyük Boy</div>
-                                <div class="fav-date">5 Nisan 2025 tarihinde eklendi</div>
-                            </div>
-                            <div class="product-price">280 ₺</div>
-                        </div>
-                        <div class="favorite-actions">
-                            <a href="#" class="btn btn-primary">Sepete Ekle</a>
-                            <a href="#" class="btn btn-outline">Favorilerden Çıkar</a>
-                        </div>
-                    </div>
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo '<div class="favorite-card">';
+                            echo '<div class="product-item">';
+                            echo '<div class="product-image"><img src="' . $row['resimYolu'] . '" alt="' . $row['urunAdi'] . '"></div>';
+                            echo '<div class="product-details">';
+                            echo '<div class="product-name">' . $row['urunAdi'] . '</div>';
+                            echo '<div class="fav-date">' . $row['favoriOlusturmaTarih'] . ' tarihinde eklendi</div>';
+                            echo '</div>';
+                            echo '<div class="product-price">' . number_format($row['urunFiyat'], 2) . ' TL</div>';
+                            echo '</div>';
+                            echo '<div class="favorite-actions">';
+                            echo '<a href="add_to_cart.php?urunID=' . $row['favoriID'] . '" class="btn btn-primary">Sepete Ekle</a>';
+                            echo '<a href="favoriSil.php?favoriID=' . $row['favoriID'] . '" class="btn btn-outline">Favorilerden Çıkar</a>';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                    } else {
+                        echo '<p>Henüz favori ürününüz bulunmamaktadır.</p>';
+                    }
+                    ?>
                 </div>
 
                 <!-- Adreslerim -->
                 <div id="addresses" class="tab-content">
                     <h2 class="content-title">Adreslerim</h2>
+                    <?php
+                    $sql = "SELECT adresID, adresBilgisi FROM t_adresler WHERE adresUyeID = $uyeID";
+                    $result = $baglan->query($sql);
 
-                    <div style="margin-bottom: 20px;">
-                        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <h4>Ev Adresi</h4>
-                                <span style="background: #e8f5e9; color: #2e7d32; padding: 3px 10px; border-radius: 20px; font-size: 12px;">Varsayılan</span>
-                            </div>
-                            <p style="margin-bottom: 10px;">Selçuk Mızraklı</p>
-                            <p style="margin-bottom: 5px;">Atatürk Mahallesi, Gül Sokak No:42 D:5</p>
-                            <p style="margin-bottom: 5px;">Kadıköy / İstanbul</p>
-                            <p style="margin-bottom: 10px;">0531 317 3971</p>
-
-                            <div style="display: flex; gap: 10px;">
-                                <a href="#" class="btn btn-outline">Düzenle</a>
-                                <a href="#" class="btn" style="color: #f44336; border: 1px solid #f44336; background: white;">Sil</a>
-                            </div>
-                        </div>
-
-                        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px;">
-                            <div style="margin-bottom: 10px;">
-                                <h4>İş Adresi</h4>
-                            </div>
-                            <p style="margin-bottom: 10px;">Selçuk Mızraklı</p>
-                            <p style="margin-bottom: 5px;">Barbaros Bulvarı, Yıldız Plaza No:127 Kat:8</p>
-                            <p style="margin-bottom: 5px;">Beşiktaş / İstanbul</p>
-                            <p style="margin-bottom: 10px;">0531 317 3971</p>
-
-                            <div style="display: flex; gap: 10px;">
-                                <a href="#" class="btn btn-outline">Düzenle</a>
-                                <a href="#" class="btn" style="color: #f44336; border: 1px solid #f44336; background: white;">Sil</a>
-                                <a href="#" class="btn btn-outline">Varsayılan Yap</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="#" class="btn btn-primary">+ Yeni Adres Ekle</a>
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo '<div class="address-card">';
+                            echo '<p>' . $row['adresBilgisi'] . '</p>';
+                            echo '<div class="address-actions">';
+                            echo '<a href="adresDuzenle.php?adresID=' . $row['adresID'] . '" class="btn btn-outline">Düzenle</a>';
+                            echo '<a href="adresSil.php?adresID=' . $row['adresID'] . '" class="btn btn-outline" style="color: red;">Sil</a>';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                    } else {
+                        echo '<p>Henüz adresiniz bulunmamaktadır.</p>';
+                    }
+                    ?>
+                    <a href="adresEkle.php" class="btn btn-primary">+ Yeni Adres Ekle</a>
                 </div>
             </div>
         </div>

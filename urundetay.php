@@ -1,3 +1,26 @@
+<?php
+// filepath: c:\xampp\htdocs\patishop\urundetay.php
+include 'ayar.php';
+
+// Ürün ID'sini URL'den al
+$urunID = isset($_GET['urunID']) ? intval($_GET['urunID']) : 0;
+
+// Ürün bilgilerini çek
+$sql = "SELECT u.urunAdi, u.urunFiyat, u.urunKategoriID, r.resimYolu, k.kategoriAdi, 
+        d.urunDAciklama, d.urunDHayvanTurID, d.urunDKampanyaID
+        FROM t_urunler u
+        LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
+        LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
+        LEFT JOIN t_urundetay d ON u.urunID = d.urunDurunID
+        WHERE u.urunID = $urunID";
+$result = $baglan->query($sql);
+
+if ($result->num_rows > 0) {
+    $urun = $result->fetch_assoc();
+} else {
+    die("Ürün bulunamadı.");
+}
+?>
 <!DOCTYPE html>
 <html lang="tr">
 
@@ -379,12 +402,58 @@
             width: 30%;
         }
 
-        footer {
-            background-color: #333;
-            color: white;
+        .related-products {
+            margin-top: 40px;
+        }
+
+        .related-products h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .product-grid {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .product-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
             text-align: center;
-            padding: 20px 0;
-            margin-top: 50px;
+            flex: 0 0 23%;
+        }
+
+        .product-card img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+
+        .product-card h4 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .product-card p {
+            font-size: 14px;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .product-card .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -433,7 +502,7 @@
     <div class="product-container">
         <div class="product-gallery">
             <div class="main-image">
-                <img src="/api/placeholder/400/320" alt="Premium Köpek Maması">
+                <img src="<?php echo $urun['resimYolu']; ?>" alt="<?php echo $urun['urunAdi']; ?>">
             </div>
             <div class="thumbnails">
                 <div class="thumbnail active">
@@ -452,7 +521,7 @@
         </div>
 
         <div class="product-info">
-            <h1 class="product-name">PatiPlus Premium Tahılsız Kuzu Etli Köpek Maması</h1>
+            <h1 class="product-name"><?php echo $urun['urunAdi']; ?></h1>
             <div class="product-brand">Marka: PatiPlus</div>
 
             <div class="product-rating">
@@ -461,7 +530,7 @@
             </div>
 
             <div class="product-price">
-                349,90 TL <span class="old-price">399,90 TL</span> <span class="discount">%13</span>
+                <?php echo number_format($urun['urunFiyat'], 2); ?> TL
             </div>
 
             <div class="product-variants">
@@ -480,7 +549,10 @@
                 <button>+</button>
             </div>
 
-            <button class="add-to-cart">Sepete Ekle</button>
+            <form action="add_to_cart.php" method="POST">
+                <input type="hidden" name="urunID" value="<?php echo $urunID; ?>">
+                <button type="submit" class="add-to-cart">Sepete Ekle</button>
+            </form>
 
             <div class="delivery-info">
                 <div class="delivery-item">
@@ -500,11 +572,7 @@
             <div class="product-description">
                 <h3 class="description-title">Ürün Açıklaması</h3>
                 <div class="description-content">
-                    <p>PatiPlus Premium Tahılsız Kuzu Etli Köpek Maması, köpeğinizin sağlıklı beslenmesi için özenle formüle edilmiştir. Tahıl içermeyen yapısı ile hassas sindirim sistemine sahip köpekler için idealdir.</p>
-
-                    <p>Yüksek kaliteli kuzu eti proteini ile zenginleştirilmiş bu mama, köpeğinizin kas gelişimini destekler ve günlük enerji ihtiyacını karşılar. İçeriğindeki Omega-3 ve Omega-6 yağ asitleri sayesinde sağlıklı bir deri ve parlak bir tüy yapısı sağlar.</p>
-
-                    <p>Prebiyotikler ve lifler ile zenginleştirilmiş formülü sindirim sistemini destekler ve bağışıklık sistemini güçlendirir. Ayrıca eklem sağlığını desteklemek için glukozamin ve kondroitin içerir.</p>
+                    <p><?php echo $urun['urunDAciklama']; ?></p>
                 </div>
             </div>
 
@@ -513,49 +581,45 @@
                 <table class="specs-table">
                     <tr>
                         <td>İçerik</td>
-                        <td>Kuzu eti (%30), tatlı patates, bezelye, elma, havuç, yaban mersini, keten tohumu, balık yağı, vitaminler ve mineraller</td>
+                        <td><?php echo $urun['urunDAciklama']; ?></td>
                     </tr>
                     <tr>
-                        <td>Protein Oranı</td>
-                        <td>%28</td>
+                        <td>Kategori</td>
+                        <td><?php echo $urun['kategoriAdi']; ?></td>
                     </tr>
                     <tr>
-                        <td>Yağ Oranı</td>
-                        <td>%16</td>
-                    </tr>
-                    <tr>
-                        <td>Lif Oranı</td>
-                        <td>%3.5</td>
-                    </tr>
-                    <tr>
-                        <td>Kül Oranı</td>
-                        <td>%7.5</td>
-                    </tr>
-                    <tr>
-                        <td>Nem Oranı</td>
-                        <td>%10</td>
-                    </tr>
-                    <tr>
-                        <td>Uygun Köpek Yaşı</td>
-                        <td>Yetişkin (1 yaş ve üzeri)</td>
-                    </tr>
-                    <tr>
-                        <td>Uygun Köpek Boyutu</td>
-                        <td>Tüm ırklar için uygundur</td>
-                    </tr>
-                    <tr>
-                        <td>Üretim Yeri</td>
-                        <td>Türkiye</td>
-                    </tr>
-                    <tr>
-                        <td>Raf Ömrü</td>
-                        <td>Üretim tarihinden itibaren 18 ay</td>
-                    </tr>
-                    <tr>
-                        <td>Saklama Koşulları</td>
-                        <td>Serin ve kuru ortamda saklayınız. Açıldıktan sonra 30 gün içinde tüketilmesi önerilir.</td>
+                        <td>Fiyat</td>
+                        <td><?php echo number_format($urun['urunFiyat'], 2); ?> TL</td>
                     </tr>
                 </table>
+            </div>
+
+            <div class="related-products">
+                <h3>Benzer Ürünler</h3>
+                <div class="product-grid">
+                    <?php
+                    $kategoriID = $urun['urunKategoriID'];
+                    $relatedSql = "SELECT urunID, urunAdi, urunFiyat, resimYolu 
+                                   FROM t_urunler 
+                                   LEFT JOIN t_resimler ON t_urunler.urunResimID = t_resimler.resimID
+                                   WHERE urunKategoriID = $kategoriID AND urunID != $urunID
+                                   LIMIT 4";
+                    $relatedResult = $baglan->query($relatedSql);
+
+                    if ($relatedResult->num_rows > 0) {
+                        while ($related = $relatedResult->fetch_assoc()) {
+                            echo '<div class="product-card">';
+                            echo '<img src="' . $related['resimYolu'] . '" alt="' . $related['urunAdi'] . '">';
+                            echo '<h4>' . $related['urunAdi'] . '</h4>';
+                            echo '<p>' . number_format($related['urunFiyat'], 2) . ' TL</p>';
+                            echo '<a href="urundetay.php?urunID=' . $related['urunID'] . '" class="btn">Detay</a>';
+                            echo '</div>';
+                        }
+                    } else {
+                        echo '<p>Benzer ürün bulunamadı.</p>';
+                    }
+                    ?>
+                </div>
             </div>
         </div>
     </div>

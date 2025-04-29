@@ -1,3 +1,26 @@
+<?php
+include 'ayar.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $urunAdi = $baglan->real_escape_string($_POST['urunAdi']);
+    $urunKategoriID = (int)$_POST['urunKategoriID'];
+    $urunFiyat = (float)$_POST['urunFiyat'];
+    $stokMiktar = (int)$_POST['stokMiktar'];
+
+    $sql = "INSERT INTO t_urunler (urunAdi, urunKategoriID, urunFiyat, urunKayitTarih) 
+            VALUES ('$urunAdi', $urunKategoriID, $urunFiyat, NOW())";
+
+    if ($baglan->query($sql) === TRUE) {
+        $urunID = $baglan->insert_id;
+        $stokSql = "INSERT INTO t_stok (stokUrunID, stokMiktar, stokGirisTarih) 
+                    VALUES ($urunID, $stokMiktar, NOW())";
+        $baglan->query($stokSql);
+        echo "Ürün başarıyla eklendi.";
+    } else {
+        echo "Hata: " . $baglan->error;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="tr">
 
@@ -340,25 +363,37 @@
                 <h3>PatiShop Admin</h3>
             </div>
 
-            <a href="#" class="menu-item">
-                <i class="fa">📦</i> Ürünler
-            </a>
-            <a href="#" class="menu-item">
+            <!-- Dinamik Menü -->
+            <?php
+            $sql = "SELECT kategoriAdi, kategoriSlug, kategoriIkonUrl FROM t_kategori WHERE kategoriDurum = 1";
+            $result = $baglan->query($sql);
+
+            if ($result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    echo '<a href="kategori.php?kategori=' . $row['kategoriSlug'] . '" class="menu-item">';
+                    echo '<i class="fa"><img src="' . $row['kategoriIkonUrl'] . '" alt="' . $row['kategoriAdi'] . '" style="width: 18px; height: 18px;"></i>';
+                    echo $row['kategoriAdi'];
+                    echo '</a>';
+                }
+            } else {
+                echo '<p style="padding: 20px; color: #666;">Kategori bulunamadı.</p>';
+            }
+            ?>
+
+            <!-- Sabit Menü Öğeleri -->
+            <a href="siparisler.php" class="menu-item">
                 <i class="fa">🛒</i> Siparişler
             </a>
-            <a href="#" class="menu-item">
+            <a href="kullanicilar.php" class="menu-item">
                 <i class="fa">👥</i> Kullanıcılar
             </a>
-            <a href="#" class="menu-item">
-                <i class="fa">🏷️</i> Kategoriler
-            </a>
-            <a href="#" class="menu-item">
+            <a href="kampanyalar.php" class="menu-item">
                 <i class="fa">🔖</i> Kampanyalar
             </a>
-            <a href="#" class="menu-item">
+            <a href="ayarlar.php" class="menu-item">
                 <i class="fa">⚙️</i> Ayarlar
             </a>
-            <a href="#" class="menu-item">
+            <a href="logout.php" class="menu-item">
                 <i class="fa">🚪</i> Çıkış Yap
             </a>
         </div>
@@ -392,46 +427,36 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>#ORD-8745</td>
-                                <td>Ahmet Yılmaz</td>
-                                <td>10.04.2025</td>
-                                <td>₺350,00</td>
-                                <td>Tamamlandı</td>
-                                <td class="action-btns">
-                                    <button class="btn btn-sm">Görüntüle</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#ORD-8744</td>
-                                <td>Zeynep Kaya</td>
-                                <td>10.04.2025</td>
-                                <td>₺220,50</td>
-                                <td>Hazırlanıyor</td>
-                                <td class="action-btns">
-                                    <button class="btn btn-sm">Görüntüle</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#ORD-8743</td>
-                                <td>Mehmet Demir</td>
-                                <td>09.04.2025</td>
-                                <td>₺1.180,00</td>
-                                <td>Kargoya Verildi</td>
-                                <td class="action-btns">
-                                    <button class="btn btn-sm">Görüntüle</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#ORD-8742</td>
-                                <td>Ayşe Yıldız</td>
-                                <td>09.04.2025</td>
-                                <td>₺480,75</td>
-                                <td>Tamamlandı</td>
-                                <td class="action-btns">
-                                    <button class="btn btn-sm">Görüntüle</button>
-                                </td>
-                            </tr>
+                            <?php
+                            $sql = "SELECT s.siparisID, u.uyeAd, u.uyeSoyad, s.siparisOdemeTarih, SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar, 
+                                    CASE s.siparisDurum 
+                                        WHEN 0 THEN 'Hazırlanıyor' 
+                                        WHEN 1 THEN 'Kargoya Verildi' 
+                                        WHEN 2 THEN 'Teslim Edildi' 
+                                    END AS siparisDurum
+                                    FROM t_siparis s
+                                    INNER JOIN t_uyeler u ON s.siparisUyeID = u.uyeID
+                                    INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
+                                    GROUP BY s.siparisID
+                                    ORDER BY s.siparisOdemeTarih DESC
+                                    LIMIT 5";
+                            $result = $baglan->query($sql);
+
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo '<tr>';
+                                    echo '<td>#ORD-' . $row['siparisID'] . '</td>';
+                                    echo '<td>' . $row['uyeAd'] . ' ' . $row['uyeSoyad'] . '</td>';
+                                    echo '<td>' . $row['siparisOdemeTarih'] . '</td>';
+                                    echo '<td>₺' . number_format($row['toplamTutar'], 2) . '</td>';
+                                    echo '<td>' . $row['siparisDurum'] . '</td>';
+                                    echo '<td class="action-btns"><button class="btn btn-sm">Görüntüle</button></td>';
+                                    echo '</tr>';
+                                }
+                            } else {
+                                echo '<tr><td colspan="6">Sipariş bulunamadı.</td></tr>';
+                            }
+                            ?>
                         </tbody>
                     </table>
                 </div>
@@ -450,7 +475,6 @@
                         </div>
 
                         <div class="tab-content">
-                            <!-- Ürün Listesi -->
                             <table>
                                 <thead>
                                     <tr>
@@ -463,45 +487,37 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>PRD-1001</td>
-                                        <td>Royal Canin Köpek Maması</td>
-                                        <td>Köpek Ürünleri</td>
-                                        <td>45</td>
-                                        <td>₺450,00</td>
-                                        <td class="action-btns">
-                                            <button class="btn btn-sm btn-warning" onclick="openUpdateProductModal({
-                                                name: 'Royal Canin Köpek Maması',
-                                                category: 'Köpek Ürünleri',
-                                                price: 450,
-                                                stock: 45,
-                                                description: 'Köpekler için özel formüle edilmiş mama.'
-                                            })">Düzenle</button>
-                                            <button class="btn btn-sm btn-danger">Sil</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>PRD-1002</td>
-                                        <td>Kedi Tırmalama Tahtası</td>
-                                        <td>Kedi Ürünleri</td>
-                                        <td>12</td>
-                                        <td>₺120,50</td>
-                                        <td class="action-btns">
-                                            <button class="btn btn-sm btn-warning">Düzenle</button>
-                                            <button class="btn btn-sm btn-danger">Sil</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>PRD-1003</td>
-                                        <td>Balık Akvaryum Filtresi</td>
-                                        <td>Balık Ürünleri</td>
-                                        <td>8</td>
-                                        <td>₺320,00</td>
-                                        <td class="action-btns">
-                                            <button class="btn btn-sm btn-warning">Düzenle</button>
-                                            <button class="btn btn-sm btn-danger">Sil</button>
-                                        </td>
-                                    </tr>
+                                    <?php
+                                    $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, k.kategoriAdi, s.stokMiktar 
+                                            FROM t_urunler u
+                                            INNER JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
+                                            INNER JOIN t_stok s ON u.urunID = s.stokUrunID
+                                            LIMIT 10";
+                                    $result = $baglan->query($sql);
+
+                                    if ($result->num_rows > 0) {
+                                        while ($row = $result->fetch_assoc()) {
+                                            echo '<tr>';
+                                            echo '<td>PRD-' . $row['urunID'] . '</td>';
+                                            echo '<td>' . $row['urunAdi'] . '</td>';
+                                            echo '<td>' . $row['kategoriAdi'] . '</td>';
+                                            echo '<td>' . $row['stokMiktar'] . '</td>';
+                                            echo '<td>₺' . number_format($row['urunFiyat'], 2) . '</td>';
+                                            echo '<td class="action-btns">';
+                                            echo '<button class="btn btn-sm btn-warning" onclick="openUpdateProductModal({
+                                                name: \'' . $row['urunAdi'] . '\',
+                                                category: \'' . $row['kategoriAdi'] . '\',
+                                                price: ' . $row['urunFiyat'] . ',
+                                                stock: ' . $row['stokMiktar'] . '
+                                            })">Düzenle</button>';
+                                            echo '<button class="btn btn-sm btn-danger">Sil</button>';
+                                            echo '</td>';
+                                            echo '</tr>';
+                                        }
+                                    } else {
+                                        echo '<tr><td colspan="6">Ürün bulunamadı.</td></tr>';
+                                    }
+                                    ?>
                                 </tbody>
                             </table>
                         </div>
@@ -720,33 +736,30 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>USR-501</td>
-                                <td>Ali Şahin</td>
-                                <td>ali.sahin@email.com</td>
-                                <td>Admin</td>
-                                <td class="action-btns">
-                                    <button class="btn btn-sm btn-warning">Yetkiyi Düzenle</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>USR-502</td>
-                                <td>Selin Yıldırım</td>
-                                <td>selin.yildirim@email.com</td>
-                                <td>Editör</td>
-                                <td class="action-btns">
-                                    <button class="btn btn-sm btn-warning">Yetkiyi Düzenle</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>USR-503</td>
-                                <td>Burak Öztürk</td>
-                                <td>burak.ozturk@email.com</td>
-                                <td>Müşteri</td>
-                                <td class="action-btns">
-                                    <button class="btn btn-sm btn-warning">Yetkiyi Düzenle</button>
-                                </td>
-                            </tr>
+                            <?php
+                            $sql = "SELECT uyeID, uyeAd, uyeSoyad, uyeMail, 
+                        CASE uyeYetki 
+                            WHEN 0 THEN 'Müşteri' 
+                            WHEN 1 THEN 'Çalışan' 
+                            WHEN 2 THEN 'Admin' 
+                        END AS rol
+                        FROM t_uyeler";
+                            $result = $baglan->query($sql);
+
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo '<tr>';
+                                    echo '<td>USR-' . $row['uyeID'] . '</td>';
+                                    echo '<td>' . $row['uyeAd'] . ' ' . $row['uyeSoyad'] . '</td>';
+                                    echo '<td>' . $row['uyeMail'] . '</td>';
+                                    echo '<td>' . $row['rol'] . '</td>';
+                                    echo '<td class="action-btns"><button class="btn btn-sm btn-warning">Yetkiyi Düzenle</button></td>';
+                                    echo '</tr>';
+                                }
+                            } else {
+                                echo '<tr><td colspan="5">Kullanıcı bulunamadı.</td></tr>';
+                            }
+                            ?>
                         </tbody>
                     </table>
                 </div>
@@ -800,6 +813,7 @@
         const modal = document.getElementById('newProductModal');
         modal.style.display = 'none';
     }
+
     function openUpdateProductModal(product) {
         // Modalı aç
         const modal = document.getElementById('updateProductModal');
@@ -818,6 +832,7 @@
         const modal = document.getElementById('updateProductModal');
         modal.style.display = 'none';
     }
+
     function openNewProductModal() {
         // Modalı aç
         const modal = document.getElementById('newProductModal');

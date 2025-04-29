@@ -1,49 +1,33 @@
 <?php
+include 'ayar.php';
 session_start();
-include("ayar.php");
 
-if (isset($_SESSION['giris']) || (isset($_SESSION['uyeAd']) && isset($_SESSION['uyeMail']))) {
-  header("Location: anasayfa.php");
-  exit();
-} else if ($_POST) {
-    $kullaniciMail = $_POST["email"];
-    $sifre = $_POST["sifre"];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $baglan->real_escape_string($_POST['email']);
+    $password = $baglan->real_escape_string($_POST['password']);
 
-    // Kullanıcıyı veritabanından çek
-    $stmt = $baglan->prepare("SELECT * FROM t_uyeler WHERE uyeMail = ?");
-    $stmt->bind_param("s", $kullaniciMail);
-    $stmt->execute();
-    $sorgu = $stmt->get_result();
+    // Kullanıcı bilgilerini kontrol et
+    $sql = "SELECT * FROM t_uyeler WHERE uyeMail = '$email' AND uyeSifre = '$password' AND uyeAktiflikDurumu = 1";
+    $result = $baglan->query($sql);
 
-    if ($sorgu->num_rows > 0) {
-        $user = $sorgu->fetch_assoc();
-        // Şifreyi kontrol et
-        if (password_verify($sifre, $user['uyeSifre'])) {
-            // Doğru sütun isimleri ile session'a kaydet
-            $_SESSION["giris"] = sha1(md5("var"));
-            $_SESSION["uyeAd"] = $user["uyeAd"];    // "ad" yerine "uyeAd" kullanın
-            $_SESSION["uyeMail"] = $user["uyeMail"];  // "email" yerine "uyeMail" kullanın
-            $_SESSION["uyeYetki"] = $user["uyeYetki"];
-            $_SESSION["uyeID"] = $user["uyeID"];
+    if ($result->num_rows > 0) {
+        $user = $result->fetch_assoc();
+        // Kullanıcı bilgilerini oturuma kaydet
+        $_SESSION['uyeID'] = $user['uyeID'];
+        $_SESSION['uyeAd'] = $user['uyeAd'];
+        $_SESSION['uyeSoyad'] = $user['uyeSoyad'];
+        $_SESSION['uyeYetki'] = $user['uyeYetki'];
 
-            // İsteğe bağlı: Çerez oluşturabilirsiniz.
-            setcookie("kullanici", "msb", time() + 3600, "/");
-
-            echo "<script> window.location.href='anasayfa.php'; </script>";
-        } else {
-            echo "<script>
-                alert('HATALI KULLANICI BİLGİSİ!'); window.location.href='girisYap.php';
-                </script>";
-        }
+        // Anasayfaya yönlendir
+        header('Location: anasayfa.php');
+        exit;
     } else {
-        echo "<script>
-            alert('HATALI KULLANICI BİLGİSİ!'); window.location.href='girisYap.php';
-            </script>";
+        // Hatalı giriş durumunda geri yönlendir
+        header('Location: index.php?error=1');
+        exit;
     }
 }
 ?>
-
-
 
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
@@ -107,7 +91,7 @@ if (isset($_SESSION['giris']) || (isset($_SESSION['uyeAd']) && isset($_SESSION['
         </div>
         <div class="mb-3">
           <label for="sifre" class="form-label">Şifre <span class="text-danger">*</span></label>
-          <input type="password" name="sifre" id="sifre" class="form-control" required>
+          <input type="password" name="password" id="sifre" class="form-control" required>
         </div>
         <button type="submit" name="submit" class="btn btn-primary">Giriş Yap</button>
       </form>
