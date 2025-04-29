@@ -1,6 +1,6 @@
 <?php
-    session_start();
-    session_destroy();
-    setcookie("email","",time()-1);
-    echo "<script> window.location.href='girisYap.php'; </script>";
+session_start();
+session_destroy();
+header('Location: index.php');
+exit;
 ?>

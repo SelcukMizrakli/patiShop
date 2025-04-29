@@ -36,6 +36,8 @@ Veri tabanı tabloları ve sütunları:
         t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin), uyeMail, uyeSifre, uyeAktiflikDurumu, uyeKayitTarih, uyeGuncellemeTarih, uyeSilmeTarih
 
 ** admin panelindeki menüler için detay sayfaları oluşturulacak
+** urundetay, profil, kayitOl, adminpanel (işlemler aktif olacak), (arama bölümleri aktif olacak)
+
 
 aşağıdaki veri tabanı tablo ve sütunlarını kullanarak bu sayfayı veri tabanına uyumlu hale getirir misin? veri tabanı bağlantısı ayar.php'de $baglan adıyla yapıldı 
 Veri tabanı tabloları ve sütunları:

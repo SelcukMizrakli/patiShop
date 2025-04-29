@@ -13,8 +13,8 @@ $data = json_decode(file_get_contents('php://input'), true);
 $urunID = $data['urunID'];
 $uyeID = $_SESSION['uyeID'];
 
-$sql = "INSERT INTO t_sepet (sepetUrunID, sepetUyeID, sepetUrunFiyat, sepetUrunMiktar, sepetOlusturmaTarih) 
-        SELECT urunID, $uyeID, urunFiyat, 1, NOW() FROM t_urunler WHERE urunID = $urunID";
+$sql = "INSERT INTO t_favoriler (favoriUyeID, favoriUrunID, favoriOlusturmaTarih) 
+        VALUES ($uyeID, $urunID, NOW())";
 
 if ($baglan->query($sql) === TRUE) {
     echo json_encode(['success' => true]);

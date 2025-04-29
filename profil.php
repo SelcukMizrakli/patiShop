@@ -459,6 +459,57 @@ if ($result->num_rows > 0) {
                 flex-direction: column;
             }
         }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .product-image img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .product-details {
+            flex: 1;
+        }
+
+        .product-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .product-meta {
+            font-size: 14px;
+            color: #777;
+        }
+
+        .product-price {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .cart-actions {
+            margin-left: 10px;
+        }
+
+        .cart-total {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: right;
+        }
     </style>
 </head>
 
@@ -481,6 +532,7 @@ if ($result->num_rows > 0) {
                     <li><a href="#current-order" onclick="showTab('current-order')">Güncel Siparişim</a></li>
                     <li><a href="#favorites" onclick="showTab('favorites')">Favorilerim</a></li>
                     <li><a href="#addresses" onclick="showTab('addresses')">Adreslerim</a></li>
+                    <li><a href="#cart" onclick="showTab('cart')">Sepetim</a></li>
                     <li><a href="#" style="color: #f44336;">Çıkış Yap</a></li>
                 </ul>
             </div>
@@ -557,64 +609,70 @@ if ($result->num_rows > 0) {
                 <!-- Güncel Siparişim -->
                 <div id="current-order" class="tab-content">
                     <h2 class="content-title">Güncel Siparişim</h2>
+                    <?php
+                    $sql = "SELECT s.siparisID, s.siparisOdemeTarih, s.siparisDurum, k.kargoDurumu, k.kargoFirmaAdi, 
+                                   SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar
+                            FROM t_siparis s
+                            LEFT JOIN t_kargo k ON s.siparisKargoID = k.kargoID
+                            INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
+                            WHERE s.siparisUyeID = $uyeID AND s.siparisDurum IN (0, 1)
+                            GROUP BY s.siparisID
+                            ORDER BY s.siparisOdemeTarih DESC
+                            LIMIT 1";
+                    $result = $baglan->query($sql);
 
-                    <div class="order-card">
-                        <div class="order-header">
-                            <span class="order-id">Sipariş #12789</span>
-                            <span class="order-date">10 Nisan 2025</span>
-                            <span class="order-status status-processing">Hazırlanıyor</span>
-                        </div>
+                    if ($result->num_rows > 0) {
+                        $siparis = $result->fetch_assoc();
+                        $durum = ($siparis['siparisDurum'] == 0) ? "Hazırlanıyor" : "Kargoya Verildi";
 
-                        <div class="product-list">
-                            <div class="product-item">
-                                <div class="product-image"></div>
-                                <div class="product-details">
-                                    <div class="product-name">N&D Köpek Maması</div>
-                                    <div class="product-meta">2.5 kg, Tahılsız</div>
-                                </div>
-                                <div class="product-price">350 ₺</div>
-                            </div>
-                            <div class="product-item">
-                                <div class="product-image"></div>
-                                <div class="product-details">
-                                    <div class="product-name">Köpek Diş Bakım Seti</div>
-                                    <div class="product-meta">3 Parça</div>
-                                </div>
-                                <div class="product-price">95 ₺</div>
-                            </div>
-                        </div>
+                        echo '<div class="order-card">';
+                        echo '<div class="order-header">';
+                        echo '<span class="order-id">Sipariş #' . $siparis['siparisID'] . '</span>';
+                        echo '<span class="order-date">' . $siparis['siparisOdemeTarih'] . '</span>';
+                        echo '<span class="order-status status-processing">' . $durum . '</span>';
+                        echo '</div>';
 
-                        <div class="order-total">
-                            Toplam: 445 ₺
-                        </div>
+                        // Sipariş ürünlerini listele
+                        $urunSql = "SELECT u.urunAdi, u.urunFiyat, r.resimYolu, sp.sepetUrunMiktar
+                                    FROM t_sepet sp
+                                    INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
+                                    LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
+                                    WHERE sp.sepetID = (SELECT siparisSepetID FROM t_siparis WHERE siparisID = " . $siparis['siparisID'] . ")";
+                        $urunResult = $baglan->query($urunSql);
 
-                        <div style="margin-top: 20px;">
-                            <h4>Kargo Takibi</h4>
-                            <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 10px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                                    <div style="text-align: center; flex: 1;">
-                                        <div style="width: 25px; height: 25px; background-color: var(--primary-color); border-radius: 50%; margin: 0 auto; color: white; line-height: 25px;">✓</div>
-                                        <div style="font-size: 12px; margin-top: 5px;">Sipariş Alındı</div>
-                                    </div>
-                                    <div style="text-align: center; flex: 1;">
-                                        <div style="width: 25px; height: 25px; background-color: var(--primary-color); border-radius: 50%; margin: 0 auto; color: white; line-height: 25px;">✓</div>
-                                        <div style="font-size: 12px; margin-top: 5px;">Hazırlanıyor</div>
-                                    </div>
-                                    <div style="text-align: center; flex: 1;">
-                                        <div style="width: 25px; height: 25px; background-color: #ddd; border-radius: 50%; margin: 0 auto;"></div>
-                                        <div style="font-size: 12px; margin-top: 5px;">Kargoya Verildi</div>
-                                    </div>
-                                    <div style="text-align: center; flex: 1;">
-                                        <div style="width: 25px; height: 25px; background-color: #ddd; border-radius: 50%; margin: 0 auto;"></div>
-                                        <div style="font-size: 12px; margin-top: 5px;">Teslim Edildi</div>
-                                    </div>
-                                </div>
-                                <div style="font-size: 14px; color: #555;">
-                                    <p>Siparişiniz hazırlanıyor. En kısa sürede kargoya verilecektir.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        echo '<div class="product-list">';
+                        if ($urunResult->num_rows > 0) {
+                            while ($urun = $urunResult->fetch_assoc()) {
+                                echo '<div class="product-item">';
+                                echo '<div class="product-image"><img src="' . $urun['resimYolu'] . '" alt="' . $urun['urunAdi'] . '"></div>';
+                                echo '<div class="product-details">';
+                                echo '<div class="product-name">' . $urun['urunAdi'] . '</div>';
+                                echo '<div class="product-meta">' . $urun['sepetUrunMiktar'] . ' Adet</div>';
+                                echo '</div>';
+                                echo '<div class="product-price">' . number_format($urun['urunFiyat'], 2) . ' TL</div>';
+                                echo '</div>';
+                            }
+                        }
+                        echo '</div>';
+
+                        echo '<div class="order-total">Toplam: ' . number_format($siparis['toplamTutar'], 2) . ' TL</div>';
+
+                        // Kargo bilgileri
+                        if ($siparis['kargoDurumu']) {
+                            echo '<div style="margin-top: 20px;">';
+                            echo '<h4>Kargo Takibi</h4>';
+                            echo '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 10px;">';
+                            echo '<p>Kargo Durumu: ' . $siparis['kargoDurumu'] . '</p>';
+                            echo '<p>Kargo Firması: ' . $siparis['kargoFirmaAdi'] . '</p>';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+
+                        echo '</div>';
+                    } else {
+                        echo '<p>Güncel bir siparişiniz bulunmamaktadır.</p>';
+                    }
+                    ?>
                 </div>
 
                 <!-- Favorilerim -->
@@ -673,6 +731,44 @@ if ($result->num_rows > 0) {
                     }
                     ?>
                     <a href="adresEkle.php" class="btn btn-primary">+ Yeni Adres Ekle</a>
+                </div>
+
+                <!-- Sepetim -->
+                <div id="cart" class="tab-content">
+                    <h2 class="content-title">Sepetim</h2>
+                    <?php
+                    if ($result->num_rows > 0) {
+                        $toplamTutar = 0;
+                        while ($row = $result->fetch_assoc()) {
+                            $urunToplam = $row['urunFiyat'] * $row['sepetUrunMiktar'];
+                            $toplamTutar += $urunToplam;
+
+                            echo '<div class="cart-item">';
+                            echo '<div class="product-item">';
+                            echo '<div class="product-image">';
+                            if (!empty($row['resimYolu'])) {
+                                echo '<img src="' . $row['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                            } else {
+                                echo '<img src="default-image.jpg" alt="Varsayılan Resim">'; // Varsayılan resim
+                            }
+                            echo '</div>';
+                            echo '<div class="product-details">';
+                            echo '<div class="product-name">' . htmlspecialchars($row['urunAdi']) . '</div>';
+                            echo '<div class="product-meta">' . $row['sepetUrunMiktar'] . ' Adet</div>';
+                            echo '</div>';
+                            echo '<div class="product-price">' . number_format($urunToplam, 2) . ' TL</div>';
+                            echo '</div>';
+                            echo '<div class="cart-actions">';
+                            echo '<a href="sepetSil.php?sepetID=' . $row['sepetID'] . '" class="btn btn-outline" style="color: red;">Kaldır</a>';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                        echo '<div class="cart-total">Toplam Tutar: ' . number_format($toplamTutar, 2) . ' TL</div>';
+                        echo '<a href="odeme.php" class="btn btn-primary">Ödeme Yap</a>';
+                    } else {
+                        echo '<p>Sepetinizde ürün bulunmamaktadır.</p>';
+                    }
+                    ?>
                 </div>
             </div>
         </div>

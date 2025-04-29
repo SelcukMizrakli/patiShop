@@ -1,3 +1,6 @@
+<?php
+include ('ayar.php');
+?>
 <style>
         * {
             box-sizing: border-box;
@@ -206,7 +209,7 @@
     <header class="header">
         <div class="container">
             <div class="logo-container">
-                <a href="#" class="logo">
+                <a href="index.php" class="logo">
                     <i class="fas fa-paw"></i> PatiShop
                 </a>
                 <div class="search-login">
@@ -215,17 +218,23 @@
                         <button type="submit"><i class="fas fa-search"></i></button>
                     </div>
                     <div class="user-actions">
-                        <div class="dropdown">
-                            <button class="user-profile">
-                                <i class="fas fa-user"></i> Hesabım
-                            </button>
-                            <div class="dropdown-content">
-                                <a href="#"><i class="fas fa-user-circle"></i> Profil</a>
-                                <a href="#"><i class="fas fa-heart"></i> Favorilerim</a>
-                                <a href="#"><i class="fas fa-box"></i> Siparişlerim</a>
-                                <a href="#"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                        <?php if (isset($_SESSION['uyeID'])): ?>
+                            <div class="dropdown">
+                                <button class="user-profile">
+                                    <i class="fas fa-user"></i> Hesabım
+                                </button>
+                                <div class="dropdown-content">
+                                    <a href="#"><i class="fas fa-user-circle"></i> Profil</a>
+                                    <a href="#"><i class="fas fa-heart"></i> Favorilerim</a>
+                                    <a href="#"><i class="fas fa-box"></i> Siparişlerim</a>
+                                    <a href="#"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                                </div>
                             </div>
-                        </div>
+                        <?php else: ?>
+                            <a href="giris.php" class="user-profile">
+                                <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

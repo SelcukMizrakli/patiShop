@@ -564,13 +564,10 @@ session_start();
                         <?php if (isset($_SESSION['uyeID'])): ?>
                             <div class="dropdown">
                                 <button class="user-profile">
-                                    <i class="fas fa-user"></i> <?php echo $_SESSION['uyeAd']. ' ' .$_SESSION['uyeSoyad']; ?>
+                                    <i class="fas fa-user"></i> <?php echo $_SESSION['uyeAd'] . ' ' . $_SESSION['uyeSoyad']; ?>
                                 </button>
                                 <div class="dropdown-content">
-                                    <a href="#"><i class="fas fa-user-circle"></i> Profil</a>
-                                    <a href="#"><i class="fas fa-heart"></i> Favorilerim</a>
-                                    <a href="#"><i class="fas fa-box"></i> Siparişlerim</a>
-                                    <a href="#"><i class="fas fa-box"></i> Sepetim</a>
+                                    <a href="profil.php"><i class="fas fa-user-circle"></i> Profilim</a>
                                     <a href="cikisYap.php"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
                                 </div>
                             </div>
@@ -656,12 +653,14 @@ session_start();
                         $resim = $resimResult->fetch_assoc();
 
                         echo '<div class="product-card">';
+                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
                         echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
                         echo '<div class="content">';
                         echo '<h3>' . $row['urunAdi'] . '</h3>';
                         echo '<div class="price">' . number_format($row['urunFiyat'], 2) . ' TL</div>';
-                        echo '<button class="add-to-cart" onclick="addToCart(' . $row['urunID'] . ')">Sepete Ekle</button>';
                         echo '</div>';
+                        echo '</a>';
+                        echo '<button class="add-to-cart" onclick="addToCart(' . $row['urunID'] . ')">Sepete Ekle</button>';
                         echo '</div>';
                     }
                 } else {
@@ -691,12 +690,14 @@ session_start();
                         $indirimliFiyat = $row['urunFiyat'] * (1 - $row['kampanyaIndirimYuzdesi'] / 100);
 
                         echo '<div class="product-card">';
+                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
                         echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
                         echo '<div class="content">';
                         echo '<h3>' . $row['urunAdi'] . '</h3>';
                         echo '<div class="price">' . number_format($indirimliFiyat, 2) . ' TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">' . number_format($row['urunFiyat'], 2) . ' TL</span></div>';
-                        echo '<button class="add-to-cart" onclick="addToCart(' . $row['urunID'] . ')">Sepete Ekle</button>';
                         echo '</div>';
+                        echo '</a>';
+                        echo '<button class="add-to-cart" onclick="addToCart(' . $row['urunID'] . ')">Sepete Ekle</button>';
                         echo '</div>';
                     }
                 } else {

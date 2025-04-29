@@ -511,7 +511,21 @@ include 'ayar.php';
                         <input type="text" placeholder="Ürün, kategori veya marka ara...">
                         <button type="submit"><i class="fas fa-search"></i></button>
                     </div>
-                    <button class="login-btn" id="loginBtn"><i class="fas fa-user"></i> Giriş Yap</button>
+                    <div class="user-actions">
+                        <?php if (isset($_SESSION['uyeID'])): ?>
+                            <div class="dropdown">
+                                <button class="user-profile">
+                                    <i class="fas fa-user"></i> <?php echo $_SESSION['uyeAd'] . ' ' . $_SESSION['uyeSoyad']; ?>
+                                </button>
+                                <div class="dropdown-content">
+                                    <a href="profil.php"><i class="fas fa-user-circle"></i> Profilim</a>
+                                    <a href="cikisYap.php"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <button class="login-btn" id="loginBtn"><i class="fas fa-user"></i> Giriş Yap</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -717,7 +731,7 @@ include 'ayar.php';
                 </div>
                 <button type="submit" class="form-submit">Giriş Yap</button>
                 <p style="text-align: center; margin-top: 15px;">
-                    Hesabınız yok mu? <button id="registerbtn" style="color: #4CAF50; text-decoration: none;">Kayıt ol</button>
+                    Hesabınız yok mu? <a href="kayitOl.php" style="color: #4CAF50; text-decoration: none;">Kayıt Ol</a>
                 </p>
             </form>
         </div>
@@ -812,8 +826,10 @@ include 'ayar.php';
             .then(data => {
                 if (data.success) {
                     alert('Ürün sepete eklendi!');
+                } else if (data.redirect) {
+                    window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
                 } else {
-                    alert('Ürün sepete eklenemedi.');
+                    alert('Ürün sepete eklenemedi: ' + data.message);
                 }
             })
             .catch(error => console.error('Hata:', error));
