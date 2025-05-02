@@ -510,6 +510,33 @@ if ($result->num_rows > 0) {
             margin-top: 15px;
             text-align: right;
         }
+
+        .product-meta form {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .product-meta button {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .product-meta button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .product-meta input[type="number"] {
+            width: 50px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
     </style>
 </head>
 
@@ -613,7 +640,7 @@ if ($result->num_rows > 0) {
                     $sql = "SELECT s.siparisID, s.siparisOdemeTarih, s.siparisDurum, k.kargoDurumu, k.kargoFirmaAdi, 
                                    SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar
                             FROM t_siparis s
-                            LEFT JOIN t_kargo k ON s.siparisKargoID = k.kargoID
+                            INNER JOIN t_kargo k ON s.siparisID = k.kargoSiparisID
                             INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
                             WHERE s.siparisUyeID = $uyeID AND s.siparisDurum IN (0, 1)
                             GROUP BY s.siparisID
@@ -654,20 +681,7 @@ if ($result->num_rows > 0) {
                             }
                         }
                         echo '</div>';
-
                         echo '<div class="order-total">Toplam: ' . number_format($siparis['toplamTutar'], 2) . ' TL</div>';
-
-                        // Kargo bilgileri
-                        if ($siparis['kargoDurumu']) {
-                            echo '<div style="margin-top: 20px;">';
-                            echo '<h4>Kargo Takibi</h4>';
-                            echo '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 10px;">';
-                            echo '<p>Kargo Durumu: ' . $siparis['kargoDurumu'] . '</p>';
-                            echo '<p>Kargo Firması: ' . $siparis['kargoFirmaAdi'] . '</p>';
-                            echo '</div>';
-                            echo '</div>';
-                        }
-
                         echo '</div>';
                     } else {
                         echo '<p>Güncel bir siparişiniz bulunmamaktadır.</p>';
@@ -737,6 +751,13 @@ if ($result->num_rows > 0) {
                 <div id="cart" class="tab-content">
                     <h2 class="content-title">Sepetim</h2>
                     <?php
+                    $sql = "SELECT sp.sepetID, u.urunAdi, u.urunFiyat, r.resimYolu, sp.sepetUrunMiktar
+            FROM t_sepet sp
+            INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
+            LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
+            WHERE sp.sepetUyeID = $uyeID";
+                    $result = $baglan->query($sql);
+
                     if ($result->num_rows > 0) {
                         $toplamTutar = 0;
                         while ($row = $result->fetch_assoc()) {
@@ -754,7 +775,14 @@ if ($result->num_rows > 0) {
                             echo '</div>';
                             echo '<div class="product-details">';
                             echo '<div class="product-name">' . htmlspecialchars($row['urunAdi']) . '</div>';
-                            echo '<div class="product-meta">' . $row['sepetUrunMiktar'] . ' Adet</div>';
+                            echo '<div class="product-meta">';
+                            echo '<form action="sepetGuncelle.php" method="POST" style="display: flex; align-items: center;">';
+                            echo '<input type="hidden" name="sepetID" value="' . $row['sepetID'] . '">';
+                            echo '<button type="submit" name="action" value="decrease" class="btn btn-outline">-</button>';
+                            echo '<input type="number" name="miktar" value="' . $row['sepetUrunMiktar'] . '" readonly style="width: 50px; text-align: center; margin: 0 10px;">';
+                            echo '<button type="submit" name="action" value="increase" class="btn btn-outline">+</button>';
+                            echo '</form>';
+                            echo '</div>';
                             echo '</div>';
                             echo '<div class="product-price">' . number_format($urunToplam, 2) . ' TL</div>';
                             echo '</div>';
@@ -775,6 +803,16 @@ if ($result->num_rows > 0) {
     </main>
 
     <script>
+        // Sayfa yüklendiğinde doğru sekmeyi göster
+        document.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash.substring(1); // URL'deki hash değerini al
+            if (hash) {
+                showTab(hash); // Hash varsa ilgili sekmeyi göster
+            } else {
+                showTab('profile'); // Hash yoksa varsayılan olarak 'profile' sekmesini göster
+            }
+        });
+
         function showTab(tabId) {
             // Önce tüm tabları gizle
             const tabs = document.querySelectorAll('.tab-content');
@@ -783,7 +821,10 @@ if ($result->num_rows > 0) {
             });
 
             // Seçilen tabı göster
-            document.getElementById(tabId).classList.add('active');
+            const activeTab = document.getElementById(tabId);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
 
             // Menü öğelerinin active class'ını güncelle
             const menuItems = document.querySelectorAll('.profile-menu a');

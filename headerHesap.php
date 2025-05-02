@@ -124,7 +124,7 @@ include ('ayar.php');
         }
 
         .navbar {
-            background-color: #f1f1f1;
+            background-color:rgb(255, 255, 255);
             overflow: hidden;
         }
 
@@ -209,7 +209,7 @@ include ('ayar.php');
     <header class="header">
         <div class="container">
             <div class="logo-container">
-                <a href="index.php" class="logo">
+                <a href="<?php echo isset($_SESSION['uyeID']) ? 'anasayfa.php' : 'index.php'; ?>" class="logo">
                     <i class="fas fa-paw"></i> PatiShop
                 </a>
                 <div class="search-login">
@@ -224,10 +224,10 @@ include ('ayar.php');
                                     <i class="fas fa-user"></i> Hesabım
                                 </button>
                                 <div class="dropdown-content">
-                                    <a href="#"><i class="fas fa-user-circle"></i> Profil</a>
-                                    <a href="#"><i class="fas fa-heart"></i> Favorilerim</a>
-                                    <a href="#"><i class="fas fa-box"></i> Siparişlerim</a>
-                                    <a href="#"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                                    <a href="profil.php#profile"><i class="fas fa-user-circle"></i> Profil</a>
+                                    <a href="profil.php#favorites"><i class="fas fa-heart"></i> Favorilerim</a>
+                                    <a href="profil.php#orders"><i class="fas fa-box"></i> Siparişlerim</a>
+                                    <a href="cikisYap.php"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
                                 </div>
                             </div>
                         <?php else: ?>
@@ -245,15 +245,51 @@ include ('ayar.php');
             <div class="container">
                 <ul>
                     <li><a href="#"><i class="fas fa-home"></i> Ana Sayfa</a></li>
-                    <li><a href="#"><i class="fas fa-dog"></i> Köpek</a></li>
-                    <li><a href="#"><i class="fas fa-cat"></i> Kedi</a></li>
-                    <li><a href="#"><i class="fas fa-fish"></i> Balık</a></li>
-                    <li><a href="#"><i class="fas fa-dove"></i> Kuş</a></li>
-                    <li><a href="#"><i class="fas fa-rabbit"></i> Kemirgen</a></li>
-                    <li><a href="#"><i class="fas fa-percentage"></i> Kampanyalar</a></li>
-                    <li><a href="#"><i class="fas fa-star"></i> Yeni Ürünler</a></li>
+                    <?php
+                    $query = "SELECT * FROM t_kategori"; // 'kategoriler' tablosundan tüm kategorileri çek
+                    $result = mysqli_query($baglan, $query); // Veritabanı bağlantısı üzerinden sorguyu çalıştır
+                    if ($result && mysqli_num_rows($result) > 0) {
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            echo '<li><a href="kategori.php?id=' . $row['kategoriID'] . '"><i class="fas fa-paw"></i> ' . htmlspecialchars($row['kategoriAdi']) . '</a></li>';
+                        }
+                    }
+                    ?>
                 </ul>
             </div>
         </nav>
     </header>
+    <script>
+        // Sayfa yüklendiğinde doğru sekmeyi göster
+        document.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash.substring(1); // URL'deki hash değerini al
+            if (hash) {
+                showTab(hash); // Hash varsa ilgili sekmeyi göster
+            } else {
+                showTab('profile'); // Hash yoksa varsayılan olarak 'profile' sekmesini göster
+            }
+        });
+
+        function showTab(tabId) {
+            // Önce tüm tabları gizle
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Seçilen tabı göster
+            const activeTab = document.getElementById(tabId);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+
+            // Menü öğelerinin active class'ını güncelle
+            const menuItems = document.querySelectorAll('.profile-menu a');
+            menuItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href') === '#' + tabId) {
+                    item.classList.add('active');
+                }
+            });
+        }
+    </script>
 </body>

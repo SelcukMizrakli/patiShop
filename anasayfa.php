@@ -549,56 +549,7 @@ session_start();
     </div>
 
     <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo-container">
-                <a href="#" class="logo">
-                    <i class="fas fa-paw"></i> PatiShop
-                </a>
-                <div class="search-login">
-                    <div class="search-container">
-                        <input type="text" placeholder="Ürün, kategori veya marka ara...">
-                        <button type="submit"><i class="fas fa-search"></i></button>
-                    </div>
-                    <div class="user-actions">
-                        <?php if (isset($_SESSION['uyeID'])): ?>
-                            <div class="dropdown">
-                                <button class="user-profile">
-                                    <i class="fas fa-user"></i> <?php echo $_SESSION['uyeAd'] . ' ' . $_SESSION['uyeSoyad']; ?>
-                                </button>
-                                <div class="dropdown-content">
-                                    <a href="profil.php"><i class="fas fa-user-circle"></i> Profilim</a>
-                                    <a href="cikisYap.php"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <button class="login-btn" id="loginBtn"><i class="fas fa-user"></i> Giriş Yap</button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Navigation -->
-        <nav class="navbar">
-            <div class="container">
-                <ul>
-                    <?php
-                    $sql = "SELECT hayvanTurAdi, hayvanTurSlug FROM t_hayvanturleri";
-                    $result = $baglan->query($sql);
-
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            echo '<li><a href="kategori.php?tur=' . $row['hayvanTurSlug'] . '"><i class="fas fa-paw"></i> ' . $row['hayvanTurAdi'] . '</a></li>';
-                        }
-                    } else {
-                        echo '<li>Kategori bulunamadı.</li>';
-                    }
-                    ?>
-                </ul>
-            </div>
-        </nav>
-    </header>
+        <?php include 'headerHesap.php'; ?>
 
     <!-- Hero Section -->
     <section class="hero">
@@ -858,6 +809,27 @@ session_start();
             event.preventDefault();
             modalRegister.style.display = "none";
             modalLogin.style.display = "block";
+        }
+
+        function addToCart(productId) {
+            fetch('add_to_cart.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ urunID: productId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message); // Başarılı mesajı göster
+                } else if (data.redirect) {
+                    window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
+                } else {
+                    alert(data.message); // Hata mesajını göster
+                }
+            })
+            .catch(error => console.error('Hata:', error));
         }
     </script>
 </body>

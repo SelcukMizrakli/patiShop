@@ -28,8 +28,8 @@ Veri tabanı tabloları ve sütunları:
         t_kategori: kategoriID, kategoriAdi, kategoriHayvanTurID, kategoriAciklama, kategoriParentID, kategoriDurum (0 aktif degil, 1 aktif), kategoriSlug, kategoriIkonUrl, kategoriKayitTarih, kategoriGuncellemeTarih
         t_resimiliskiler: resimIliskilerID, resimIliskilerResimID, resimIliskilerEklenenID
         t_resimler: resimID, resimYolu, resimBaslik, resimEklenmeTarih
-        t_sepet: sepetID, sepetUrunID, sepetUyeID, sepetUrunFiyat, sepetUrunMiktar, sepetOlusturmaTarih, sepetGuncellemeTarih
-        t_siparis: siparisID, siparisUyeID, siparisSepetID, siparisDurum (0 hazirlaniyor, 1 kargoya verildi, 2 teslim edildi), siparisOdemeDurum (0 basarisiz, 1 basarili), siparisOdemeTarih, siparisAdresID, siparisKargoID
+        t_sepet: sepetID, sepetUrunID, sepetUyeID, sepetUrunFiyat, sepetUrunMiktar, sepetOlusturmaTarih, sepetGuncellemeTarih, sepetGorunurluk (0 gizli, 1 gorunur)
+        t_siparis: siparisID, siparisUyeID, siparisSepetID, siparisDurum (0 hazirlaniyor, 1 kargoya verildi, 2 teslim edildi), siparisOdemeDurum (0 basarisiz, 1 basarili), siparisOdemeTarih, siparisAdresID
         t_stok: stokID, stokUrunID, stokMiktar, stokGirisTarih, stokCikisTarih
         t_urundetay: urunDID, urunDurunID, urunDHayvanTurID, urunDKampanyaID, urunDAciklama, urunDStokID
         t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunResimID, urunKayitTarih, urunGuncellemeTarih
@@ -49,8 +49,8 @@ t_kargo: kargoID, kargoSiparisID, kargoNo, kargoDurumu, kargoFirmaAdi, kargoyaVe
 t_kategori: kategoriID, kategoriAdi, kategoriHayvanTurID, kategoriAciklama, kategoriParentID, kategoriDurum (0 aktif degil, 1 aktif), kategoriSlug, kategoriIkonUrl, kategoriKayitTarih, kategoriGuncellemeTarih
 t_resimiliskiler: resimIliskilerID, resimIliskilerResimID, resimIliskilerEklenenID
 t_resimler: resimID, resimYolu, resimBaslik, resimEklenmeTarih
-t_sepet: sepetID, sepetUrunID, sepetUyeID, sepetUrunFiyat, sepetUrunMiktar, sepetOlusturmaTarih, sepetGuncellemeTarih
-t_siparis: siparisID, siparisUyeID, siparisSepetID, siparisDurum (0 hazirlaniyor, 1 kargoya verildi, 2 teslim edildi), siparisOdemeDurum (0 basarisiz, 1 basarili), siparisOdemeTarih, siparisAdresID, siparisKargoID
+t_sepet: sepetID, sepetUrunID, sepetUyeID, sepetUrunFiyat, sepetUrunMiktar, sepetOlusturmaTarih, sepetGuncellemeTarih, sepetGorunurluk (0 gizli, 1 gorunur)
+t_siparis: siparisID, siparisUyeID, siparisSepetID, siparisDurum (0 hazirlaniyor, 1 kargoya verildi, 2 teslim edildi), siparisOdemeDurum (0 basarisiz, 1 basarili), siparisOdemeTarih, siparisAdresID
 t_stok: stokID, stokUrunID, stokMiktar, stokGirisTarih, stokCikisTarih
 t_urundetay: urunDID, urunDurunID, urunDHayvanTurID, urunDKampanyaID, urunDAciklama, urunDStokID
 t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunResimID, urunKayitTarih, urunGuncellemeTarih
