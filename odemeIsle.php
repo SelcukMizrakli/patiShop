@@ -36,10 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-// Disable foreign key checks to handle circular dependency
-    $baglan->query("SET FOREIGN_KEY_CHECKS=0");
-
-    // Sipariş bilgilerini t_siparis tablosuna ekle (siparisKargoID sütunu kaldırıldığı için güncellendi, siparisSepetID zorunlu olduğu için orijinal değeri kullanıldı)
+    // Sipariş bilgilerini t_siparis tablosuna ekle
     $sqlSiparis = "INSERT INTO t_siparis (siparisUyeID, siparisAdresID, siparisSepetID, siparisOdemeTarih, siparisDurum, siparisOdemeDurum) 
                    VALUES ($uyeID, $adresID, $sepetID, NOW(), 0, 1)";
     if ($baglan->query($sqlSiparis) === TRUE) {
@@ -47,21 +44,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Kargo bilgilerini t_kargo tablosuna ekle
         $kargoFirmaAdi = "TDM";
-$kargoNo = uniqid('KARGO');
+        $kargoNo = uniqid('KARGO');
         $kargoDurumu = 0;
         $kargoyaVerilmeTarihi = "NULL";
-        $kargoTeslimatTarihi = "NULL";
+
+        // Teslimat tarihini şu anki tarihten 3 ile 8 gün sonrası olarak ayarla
+        $teslimatGun = rand(3, 8);
+        $kargoTeslimatTarihi = date('Y-m-d', strtotime("+$teslimatGun days"));
 
         $sqlKargo = "INSERT INTO t_kargo (kargoSiparisID, kargoNo, kargoDurumu, kargoFirmaAdi, kargoyaVerilmeTarihi, kargoTeslimatTarihi) 
-                     VALUES ($siparisID, '$kargoNo', $kargoDurumu, '$kargoFirmaAdi', $kargoyaVerilmeTarihi, $kargoTeslimatTarihi)";
+                     VALUES ($siparisID, '$kargoNo', $kargoDurumu, '$kargoFirmaAdi', $kargoyaVerilmeTarihi, '$kargoTeslimatTarihi')";
         if ($baglan->query($sqlKargo) === TRUE) {
             // Sepeti görünmez yap
             $sqlSepetGuncelle = "UPDATE t_sepet SET sepetGorunurluk = 0 WHERE sepetID = $sepetID";
-            $baglan->query($sqlSepetGuncelle);
-
-            // Ödeme başarılı mesajı ve yönlendirme
-            echo "<script>alert('Ödeme Başarılı! Siparişiniz oluşturuldu.'); window.location.href = 'profil.php#current-order';</script>";
-            exit;
+            if ($baglan->query($sqlSepetGuncelle) === TRUE) {
+                // Ödeme başarılı mesajı ve yönlendirme
+                echo "<script>alert('Ödeme Başarılı! Siparişiniz oluşturuldu.'); window.location.href = 'profil.php#current-order';</script>";
+                exit;
+            } else {
+                echo "<script>alert('Sepet güncellenemedi: " . $baglan->error . "'); window.history.back();</script>";
+                exit;
+            }
         } else {
             echo "<script>alert('Kargo bilgileri kaydedilemedi: " . $baglan->error . "'); window.history.back();</script>";
             exit;

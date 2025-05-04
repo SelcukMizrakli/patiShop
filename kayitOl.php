@@ -197,34 +197,7 @@
     Türkiye'nin her yerine ücretsiz kargo! 200 TL ve üzeri siparişlerde geçerlidir.
   </div>
 
-  <header>
-    <a href="#" class="logo">
-      <span class="logo-icon">🐾</span>
-      <h1>PatiShop</h1>
-    </a>
-
-    <div class="search-bar">
-      <input type="text" placeholder="Ürün, kategori veya marka ara...">
-      <button>🔍</button>
-    </div>
-
-    <div class="user-actions">
-      <button>Giriş Yap</button>
-    </div>
-  </header>
-
-  <nav>
-    <ul>
-      <li><a href="#"><i>🏠</i> Ana Sayfa</a></li>
-      <li><a href="#"><i>🐕</i> Köpek</a></li>
-      <li><a href="#"><i>🐈</i> Kedi</a></li>
-      <li><a href="#"><i>🐠</i> Balık</a></li>
-      <li><a href="#"><i>🐦</i> Kuş</a></li>
-      <li><a href="#"><i>🦔</i> Kemirgen</a></li>
-      <li><a href="#"><i>🏷️</i> Kampanyalar</a></li>
-      <li><a href="#"><i>🆕</i> Yeni Ürünler</a></li>
-    </ul>
-  </nav>
+<?php include 'headerHesap.php'; ?>
 
   <div class="main-content">
     <h2>Hesap Oluştur</h2>

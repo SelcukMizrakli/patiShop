@@ -537,6 +537,42 @@ if ($result->num_rows > 0) {
             border-radius: 5px;
             font-size: 14px;
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -604,90 +640,105 @@ if ($result->num_rows > 0) {
 
                 <!-- Siparişlerim -->
                 <div id="orders" class="tab-content">
-                    <h2 class="content-title">Geçmiş Siparişlerim</h2>
-                    <?php
-                    $sql = "SELECT s.siparisID, s.siparisOdemeTarih, s.siparisDurum, 
-                                   SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar
-                            FROM t_siparis s
-                            INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
-                            WHERE s.siparisUyeID = $uyeID
-                            GROUP BY s.siparisID
-                            ORDER BY s.siparisOdemeTarih DESC";
-                    $result = $baglan->query($sql);
+    <h2 class="content-title">Geçmiş Siparişlerim</h2>
+    <?php
+    $sql = "SELECT s.siparisID, s.siparisOdemeTarih, s.siparisDurum, 
+                   SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar,
+                   k.kargoTeslimatTarihi,
+                   (SELECT r.resimYolu 
+                    FROM t_sepet sp2
+                    INNER JOIN t_urunler u ON sp2.sepetUrunID = u.urunID
+                    LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
+                    WHERE sp2.sepetID = s.siparisSepetID LIMIT 1) AS siparisGorsel,
+                   (SELECT u.urunID 
+                    FROM t_sepet sp2
+                    INNER JOIN t_urunler u ON sp2.sepetUrunID = u.urunID
+                    WHERE sp2.sepetID = s.siparisSepetID LIMIT 1) AS urunID
+            FROM t_siparis s
+            INNER JOIN t_kargo k ON s.siparisID = k.kargoSiparisID
+            INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
+            WHERE s.siparisUyeID = $uyeID
+            GROUP BY s.siparisID
+            ORDER BY s.siparisOdemeTarih DESC";
+    $result = $baglan->query($sql);
 
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            $durum = ($row['siparisDurum'] == 0) ? "Hazırlanıyor" : (($row['siparisDurum'] == 1) ? "Kargoya Verildi" : "Teslim Edildi");
-                            echo '<div class="order-card">';
-                            echo '<div class="order-header">';
-                            echo '<span class="order-id">Sipariş #' . $row['siparisID'] . '</span>';
-                            echo '<span class="order-date">' . $row['siparisOdemeTarih'] . '</span>';
-                            echo '<span class="order-status">' . $durum . '</span>';
-                            echo '</div>';
-                            echo '<div class="order-total">Toplam: ' . number_format($row['toplamTutar'], 2) . ' TL</div>';
-                            echo '</div>';
-                        }
-                    } else {
-                        echo '<p>Henüz siparişiniz bulunmamaktadır.</p>';
-                    }
-                    ?>
-                </div>
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $durum = ($row['siparisDurum'] == 0) ? "Hazırlanıyor" : (($row['siparisDurum'] == 1) ? "Kargoya Verildi" : "Teslim Edildi");
+            echo '<div class="order-card" onclick="showOrderDetails(' . $row['siparisID'] . ')">';
+            echo '<div class="order-header">';
+            echo '<span class="order-id">Sipariş #' . $row['siparisID'] . '</span>';
+            echo '<span class="order-date">' . $row['siparisOdemeTarih'] . '</span>';
+            echo '<span class="order-status">' . $durum . '</span>';
+            echo '</div>';
+            echo '<div class="order-image">';
+            if (!empty($row['siparisGorsel'])) {
+                echo '<a href="urunDetay.php?urunID=' . $row['urunID'] . '">';
+                echo '<img src="' . $row['siparisGorsel'] . '" alt="Sipariş Görseli" style="width: 100px; height: 100px; object-fit: cover;">';
+                echo '</a>';
+            } else {
+                echo '<img src="default-image.jpg" alt="Varsayılan Görsel" style="width: 100px; height: 100px; object-fit: cover;">';
+            }
+            echo '</div>';
+            echo '<div class="order-total">Toplam: ' . number_format($row['toplamTutar'], 2) . ' TL</div>';
+            echo '</div>';
+        }
+    } else {
+        echo '<p>Henüz siparişiniz bulunmamaktadır.</p>';
+    }
+    ?>
+</div>
 
                 <!-- Güncel Siparişim -->
                 <div id="current-order" class="tab-content">
-                    <h2 class="content-title">Güncel Siparişim</h2>
-                    <?php
-                    $sql = "SELECT s.siparisID, s.siparisOdemeTarih, s.siparisDurum, k.kargoDurumu, k.kargoFirmaAdi, 
-                                   SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar
-                            FROM t_siparis s
-                            INNER JOIN t_kargo k ON s.siparisID = k.kargoSiparisID
-                            INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
-                            WHERE s.siparisUyeID = $uyeID AND s.siparisDurum IN (0, 1)
-                            GROUP BY s.siparisID
-                            ORDER BY s.siparisOdemeTarih DESC
-                            LIMIT 1";
-                    $result = $baglan->query($sql);
+    <h2 class="content-title">Güncel Siparişlerim</h2>
+    <?php
+    $sql = "SELECT s.siparisID, s.siparisOdemeTarih, s.siparisDurum, k.kargoDurumu, k.kargoFirmaAdi, k.kargoTeslimatTarihi,
+                   SUM(sp.sepetUrunFiyat * sp.sepetUrunMiktar) AS toplamTutar,
+                   (SELECT r.resimYolu 
+                    FROM t_sepet sp2
+                    INNER JOIN t_urunler u ON sp2.sepetUrunID = u.urunID
+                    LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
+                    WHERE sp2.sepetID = s.siparisSepetID LIMIT 1) AS siparisGorsel,
+                   (SELECT u.urunID 
+                    FROM t_sepet sp2
+                    INNER JOIN t_urunler u ON sp2.sepetUrunID = u.urunID
+                    WHERE sp2.sepetID = s.siparisSepetID LIMIT 1) AS urunID
+            FROM t_siparis s
+            INNER JOIN t_kargo k ON s.siparisID = k.kargoSiparisID
+            INNER JOIN t_sepet sp ON s.siparisSepetID = sp.sepetID
+            WHERE s.siparisUyeID = $uyeID AND s.siparisDurum IN (0, 1)
+            GROUP BY s.siparisID
+            ORDER BY s.siparisOdemeTarih DESC";
+    $result = $baglan->query($sql);
 
-                    if ($result->num_rows > 0) {
-                        $siparis = $result->fetch_assoc();
-                        $durum = ($siparis['siparisDurum'] == 0) ? "Hazırlanıyor" : "Kargoya Verildi";
+    if ($result->num_rows > 0) {
+        while ($siparis = $result->fetch_assoc()) {
+            $durum = ($siparis['siparisDurum'] == 0) ? "Hazırlanıyor" : "Kargoya Verildi";
 
-                        echo '<div class="order-card">';
-                        echo '<div class="order-header">';
-                        echo '<span class="order-id">Sipariş #' . $siparis['siparisID'] . '</span>';
-                        echo '<span class="order-date">' . $siparis['siparisOdemeTarih'] . '</span>';
-                        echo '<span class="order-status status-processing">' . $durum . '</span>';
-                        echo '</div>';
-
-                        // Sipariş ürünlerini listele
-                        $urunSql = "SELECT u.urunAdi, u.urunFiyat, r.resimYolu, sp.sepetUrunMiktar
-                                    FROM t_sepet sp
-                                    INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
-                                    LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
-                                    WHERE sp.sepetID = (SELECT siparisSepetID FROM t_siparis WHERE siparisID = " . $siparis['siparisID'] . ")";
-                        $urunResult = $baglan->query($urunSql);
-
-                        echo '<div class="product-list">';
-                        if ($urunResult->num_rows > 0) {
-                            while ($urun = $urunResult->fetch_assoc()) {
-                                echo '<div class="product-item">';
-                                echo '<div class="product-image"><img src="' . $urun['resimYolu'] . '" alt="' . $urun['urunAdi'] . '"></div>';
-                                echo '<div class="product-details">';
-                                echo '<div class="product-name">' . $urun['urunAdi'] . '</div>';
-                                echo '<div class="product-meta">' . $urun['sepetUrunMiktar'] . ' Adet</div>';
-                                echo '</div>';
-                                echo '<div class="product-price">' . number_format($urun['urunFiyat'], 2) . ' TL</div>';
-                                echo '</div>';
-                            }
-                        }
-                        echo '</div>';
-                        echo '<div class="order-total">Toplam: ' . number_format($siparis['toplamTutar'], 2) . ' TL</div>';
-                        echo '</div>';
-                    } else {
-                        echo '<p>Güncel bir siparişiniz bulunmamaktadır.</p>';
-                    }
-                    ?>
-                </div>
+            echo '<div class="order-card" onclick="showOrderDetails(' . $siparis['siparisID'] . ')">';
+            echo '<div class="order-header">';
+            echo '<span class="order-id">Sipariş #' . $siparis['siparisID'] . '</span>';
+            echo '<span class="order-date">' . $siparis['siparisOdemeTarih'] . '</span>';
+            echo '<span class="order-status status-processing">' . $durum . '</span>';
+            echo '</div>';
+            echo '<div class="order-image">';
+            if (!empty($siparis['siparisGorsel'])) {
+                echo '<a href="urunDetay.php?urunID=' . $siparis['urunID'] . '">';
+                echo '<img src="' . $siparis['siparisGorsel'] . '" alt="Sipariş Görseli" style="width: 100px; height: 100px; object-fit: cover;">';
+                echo '</a>';
+            } else {
+                echo '<img src="default-image.jpg" alt="Varsayılan Görsel" style="width: 100px; height: 100px; object-fit: cover;">';
+            }
+            echo '</div>';
+            echo '<div class="order-total">Toplam: ' . number_format($siparis['toplamTutar'], 2) . ' TL</div>';
+            echo '</div>';
+        }
+    } else {
+        echo '<p>Güncel bir siparişiniz bulunmamaktadır.</p>';
+    }
+    ?>
+</div>
 
                 <!-- Favorilerim -->
                 <div id="favorites" class="tab-content">
@@ -749,58 +800,70 @@ if ($result->num_rows > 0) {
 
                 <!-- Sepetim -->
                 <div id="cart" class="tab-content">
-                    <h2 class="content-title">Sepetim</h2>
-                    <?php
-                    $sql = "SELECT sp.sepetID, u.urunAdi, u.urunFiyat, r.resimYolu, sp.sepetUrunMiktar
+    <h2 class="content-title">Sepetim</h2>
+    <?php
+    $sql = "SELECT sp.sepetID, u.urunAdi, u.urunFiyat, r.resimYolu, sp.sepetUrunMiktar
             FROM t_sepet sp
             INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
             LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
-            WHERE sp.sepetUyeID = $uyeID";
-                    $result = $baglan->query($sql);
+            WHERE sp.sepetUyeID = $uyeID AND sp.sepetGorunurluk = 1"; // Sadece sepetGorunurluk = 1 olan ürünler
+    $result = $baglan->query($sql);
 
-                    if ($result->num_rows > 0) {
-                        $toplamTutar = 0;
-                        while ($row = $result->fetch_assoc()) {
-                            $urunToplam = $row['urunFiyat'] * $row['sepetUrunMiktar'];
-                            $toplamTutar += $urunToplam;
+    if ($result->num_rows > 0) {
+        $toplamTutar = 0;
+        while ($row = $result->fetch_assoc()) {
+            $urunToplam = $row['urunFiyat'] * $row['sepetUrunMiktar'];
+            $toplamTutar += $urunToplam;
 
-                            echo '<div class="cart-item">';
-                            echo '<div class="product-item">';
-                            echo '<div class="product-image">';
-                            if (!empty($row['resimYolu'])) {
-                                echo '<img src="' . $row['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
-                            } else {
-                                echo '<img src="default-image.jpg" alt="Varsayılan Resim">'; // Varsayılan resim
-                            }
-                            echo '</div>';
-                            echo '<div class="product-details">';
-                            echo '<div class="product-name">' . htmlspecialchars($row['urunAdi']) . '</div>';
-                            echo '<div class="product-meta">';
-                            echo '<form action="sepetGuncelle.php" method="POST" style="display: flex; align-items: center;">';
-                            echo '<input type="hidden" name="sepetID" value="' . $row['sepetID'] . '">';
-                            echo '<button type="submit" name="action" value="decrease" class="btn btn-outline">-</button>';
-                            echo '<input type="number" name="miktar" value="' . $row['sepetUrunMiktar'] . '" readonly style="width: 50px; text-align: center; margin: 0 10px;">';
-                            echo '<button type="submit" name="action" value="increase" class="btn btn-outline">+</button>';
-                            echo '</form>';
-                            echo '</div>';
-                            echo '</div>';
-                            echo '<div class="product-price">' . number_format($urunToplam, 2) . ' TL</div>';
-                            echo '</div>';
-                            echo '<div class="cart-actions">';
-                            echo '<a href="sepetSil.php?sepetID=' . $row['sepetID'] . '" class="btn btn-outline" style="color: red;">Kaldır</a>';
-                            echo '</div>';
-                            echo '</div>';
-                        }
-                        echo '<div class="cart-total">Toplam Tutar: ' . number_format($toplamTutar, 2) . ' TL</div>';
-                        echo '<a href="odeme.php" class="btn btn-primary">Ödeme Yap</a>';
-                    } else {
-                        echo '<p>Sepetinizde ürün bulunmamaktadır.</p>';
-                    }
-                    ?>
-                </div>
+            echo '<div class="cart-item">';
+            echo '<div class="product-item">';
+            echo '<div class="product-image">';
+            if (!empty($row['resimYolu'])) {
+                echo '<img src="' . $row['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+            } else {
+                echo '<img src="default-image.jpg" alt="Varsayılan Resim">'; // Varsayılan resim
+            }
+            echo '</div>';
+            echo '<div class="product-details">';
+            echo '<div class="product-name">' . htmlspecialchars($row['urunAdi']) . '</div>';
+            echo '<div class="product-meta">';
+            echo '<form action="sepetGuncelle.php" method="POST" style="display: flex; align-items: center;">';
+            echo '<input type="hidden" name="sepetID" value="' . $row['sepetID'] . '">';
+            echo '<button type="submit" name="action" value="decrease" class="btn btn-outline">-</button>';
+            echo '<input type="number" name="miktar" value="' . $row['sepetUrunMiktar'] . '" readonly style="width: 50px; text-align: center; margin: 0 10px;">';
+            echo '<button type="submit" name="action" value="increase" class="btn btn-outline">+</button>';
+            echo '</form>';
+            echo '</div>';
+            echo '</div>';
+            echo '<div class="product-price">' . number_format($urunToplam, 2) . ' TL</div>';
+            echo '</div>';
+            echo '<div class="cart-actions">';
+            echo '<a href="sepetSil.php?sepetID=' . $row['sepetID'] . '" class="btn btn-outline" style="color: red;">Kaldır</a>';
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '<div class="cart-total">Toplam Tutar: ' . number_format($toplamTutar, 2) . ' TL</div>';
+        echo '<a href="odeme.php" class="btn btn-primary">Ödeme Yap</a>';
+    } else {
+        echo '<p>Sepetinizde ürün bulunmamaktadır.</p>';
+    }
+    ?>
+</div>
+
             </div>
         </div>
     </main>
+
+    <!-- Modal -->
+    <div id="orderDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Sipariş Detayları</h2>
+            <div id="orderDetailsContent">
+                <!-- Sipariş detayları buraya yüklenecek -->
+            </div>
+        </div>
+    </div>
 
     <script>
         // Sayfa yüklendiğinde doğru sekmeyi göster
@@ -834,6 +897,33 @@ if ($result->num_rows > 0) {
                     item.classList.add('active');
                 }
             });
+        }
+
+        function showOrderDetails(siparisID) {
+            // Modal'ı göster
+            const modal = document.getElementById('orderDetailsModal');
+            modal.style.display = 'block';
+
+            // Sipariş detaylarını yükle
+            const content = document.getElementById('orderDetailsContent');
+            content.innerHTML = '<p>Yükleniyor...</p>';
+
+            // AJAX ile sipariş detaylarını çek
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'siparisDetay.php?siparisID=' + siparisID, true);
+            xhr.onload = function () {
+                if (this.status === 200) {
+                    content.innerHTML = this.responseText;
+                } else {
+                    content.innerHTML = '<p>Detaylar yüklenemedi.</p>';
+                }
+            };
+            xhr.send();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('orderDetailsModal');
+            modal.style.display = 'none';
         }
     </script>
 </body>

@@ -231,7 +231,7 @@ include ('ayar.php');
                                 </div>
                             </div>
                         <?php else: ?>
-                            <a href="giris.php" class="user-profile">
+                            <a href="index.php" class="user-profile" onclick="delayedLoginModal(event)">
                                 <i class="fas fa-sign-in-alt"></i> Giriş Yap
                             </a>
                         <?php endif; ?>
@@ -290,6 +290,31 @@ include ('ayar.php');
                     item.classList.add('active');
                 }
             });
+        }
+
+        function delayedLoginModal(event) {
+            // Varsayılan tıklama davranışını engelle
+            event.preventDefault();
+
+            // Kullanıcıyı index.php sayfasına yönlendir
+            window.location.href = 'index.php';
+
+            // Belirli bir süre sonra openLoginModal fonksiyonunu çalıştır
+            setTimeout(() => {
+            openLoginModal();
+
+            // "//*[@id='loginBtn']" path'indeki öğeye click olayı gerçekleştir
+            const loginButton = document.querySelector('#loginBtn');
+            if (loginButton) {
+                loginButton.click();
+            }
+            }, 5000); // 2.5 saniye (2500 ms) bekleme süresi
+        }
+
+        function openLoginModal() {
+            // Giriş yap modalını açma işlemleri burada yapılır
+            console.log('Giriş yap modalı açıldı.');
+            // Modal açma kodlarınızı buraya ekleyin
         }
     </script>
 </body>

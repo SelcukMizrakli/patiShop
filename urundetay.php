@@ -2,12 +2,37 @@
 include 'ayar.php';
 session_start();
 
+// Kullanıcı giriş yapmamışsa giriş yapma sayfasına yönlendir
+if (!isset($_SESSION['uyeID'])) {
+    header('Location: girisYap.php');
+    exit;
+}
+
+// Ürün ID kontrolü
 if (!isset($_GET['urunID'])) {
     header('Location: index.php');
     exit;
 }
 
 $urunID = intval($_GET['urunID']);
+
+// Favorilere ekleme işlemi
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['favorilereEkle'])) {
+    $uyeID = $_SESSION['uyeID'];
+    $now = date('Y-m-d H:i:s');
+
+    // Favorilere ekleme sorgusu
+    $sql = "INSERT INTO t_favoriler (favoriUyeID, favoriUrunID, favoriOlusturmaTarih, favoriGuncellemeTarih, favoriSilmeTarih) 
+            VALUES ($uyeID, $urunID, '$now', '$now', NULL)";
+
+    if ($baglan->query($sql) === TRUE) {
+        $favoriMesaj = "Ürün favorilere eklendi!";
+    } else {
+        $favoriMesaj = "Ürün favorilere eklenemedi: " . $baglan->error;
+    }
+}
+
+// Ürün bilgilerini çek
 $sql = "SELECT u.urunAdi, u.urunFiyat, u.urunKategoriID, r.resimYolu, k.kategoriAdi, d.urunDAciklama, d.urunDHayvanTurID, d.urunDKampanyaID
         FROM t_urunler u
         LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
@@ -49,6 +74,7 @@ if ($result->num_rows > 0) {
             padding: 10px 0;
             font-size: 14px;
         }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -990,57 +1016,7 @@ if ($result->num_rows > 0) {
         Türkiye'nin her yerine ücretsiz kargo! 200 TL ve üzeri siparişlerde geçerlidir.
     </div>
 
-<!-- Header -->
-<header class="header">
-        <div class="container">
-            <div class="logo-container">
-                <a href="#" class="logo">
-                    <i class="fas fa-paw"></i> PatiShop
-                </a>
-                <div class="search-login">
-                    <div class="search-container">
-                        <input type="text" placeholder="Ürün, kategori veya marka ara...">
-                        <button type="submit"><i class="fas fa-search"></i></button>
-                    </div>
-                    <div class="user-actions">
-                        <?php if (isset($_SESSION['uyeID'])): ?>
-                            <div class="dropdown">
-                                <button class="user-profile">
-                                    <i class="fas fa-user"></i> <?php echo $_SESSION['uyeAd'] . ' ' . $_SESSION['uyeSoyad']; ?>
-                                </button>
-                                <div class="dropdown-content">
-                                    <a href="profil.php"><i class="fas fa-user-circle"></i> Profilim</a>
-                                    <a href="cikisYap.php"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <button class="login-btn" id="loginBtn"><i class="fas fa-user"></i> Giriş Yap</button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Navigation -->
-        <nav class="navbar">
-            <div class="container">
-                <ul>
-                    <?php
-                    $sql = "SELECT hayvanTurAdi, hayvanTurSlug FROM t_hayvanturleri";
-                    $result = $baglan->query($sql);
-
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            echo '<li><a href="kategori.php?tur=' . $row['hayvanTurSlug'] . '"><i class="fas fa-paw"></i> ' . $row['hayvanTurAdi'] . '</a></li>';
-                        }
-                    } else {
-                        echo '<li>Kategori bulunamadı.</li>';
-                    }
-                    ?>
-                </ul>
-            </div>
-        </nav>
-    </header>
+        <?php include 'headerHesap.php'; ?>
 
     <div class="breadcrumb">
         <a href="#">Ana Sayfa</a> <span>></span>
@@ -1099,12 +1075,16 @@ if ($result->num_rows > 0) {
                 <button>+</button>
             </div>
 
-            <form action="add_to_cart.php" method="POST">
-                <input type="hidden" name="urunID" value="<?php echo $urunID; ?>">
-                <button type="submit" class="add-to-cart">Sepete Ekle</button>
+            <button onclick="addToCart(<?php echo $urunID; ?>)" class="add-to-cart">Sepete Ekle</button>
+
+            <!-- Favorilere ekleme formu -->
+            <form method="POST" action="">
+                <button type="submit" name="favorilereEkle" class="add-to-cart" style="background-color: #ff6b6b;">Favorilere Ekle</button>
             </form>
 
-            <button onclick="addToFavorites(<?php echo $urunID; ?>)">Favorilere Ekle</button>
+            <?php if (isset($favoriMesaj)): ?>
+                <p><?php echo $favoriMesaj; ?></p>
+            <?php endif; ?>
 
             <div class="delivery-info">
                 <div class="delivery-item">
@@ -1188,7 +1168,7 @@ if ($result->num_rows > 0) {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        urunID: productId
+                        urunID: productId // Burada productId'nin doğru bir şekilde gönderildiğinden emin olun
                     }),
                 })
                 .then(response => response.json())
@@ -1214,8 +1194,14 @@ if ($result->num_rows > 0) {
                         urunID: productId
                     }),
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP error! status: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log(data); // Sunucu yanıtını kontrol edin
                     if (data.success) {
                         alert('Ürün favorilere eklendi!');
                     } else if (data.redirect) {
