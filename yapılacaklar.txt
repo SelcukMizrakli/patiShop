@@ -73,3 +73,4 @@ t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin)
         *** profilim kismindan favorilerden sepete ekleme duzenlenecek (kaldirilabilir)
 
         ** güncel siparişlerim kısmındaki sipariş detaylarında siparişteki tüm ürünlere ait görseller, miktarlar ve fiyat yer almalı
+        
