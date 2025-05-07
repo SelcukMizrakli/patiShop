@@ -1,5 +1,8 @@
 <?php
-include ('ayar.php');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include('ayar.php');
 ?>
 <style>
         * {
@@ -214,8 +217,10 @@ include ('ayar.php');
                 </a>
                 <div class="search-login">
                     <div class="search-container">
-                        <input type="text" placeholder="Ürün, kategori veya marka ara...">
-                        <button type="submit"><i class="fas fa-search"></i></button>
+                        <form action="kategori.php" method="GET">
+                            <input type="text" name="arama" placeholder="Ürün, kategori veya marka ara..." required>
+                            <button type="submit"><i class="fas fa-search"></i></button>
+                        </form>
                     </div>
                     <div class="user-actions">
                         <?php if (isset($_SESSION['uyeID'])): ?>
@@ -231,7 +236,7 @@ include ('ayar.php');
                                 </div>
                             </div>
                         <?php else: ?>
-                            <a href="index.php" class="user-profile" onclick="delayedLoginModal(event)">
+                            <a href="index.php?showLoginModal=true" class="user-profile">
                                 <i class="fas fa-sign-in-alt"></i> Giriş Yap
                             </a>
                         <?php endif; ?>
@@ -244,7 +249,7 @@ include ('ayar.php');
         <nav class="navbar">
             <div class="container">
                 <ul>
-                    <li><a href="#"><i class="fas fa-home"></i> Ana Sayfa</a></li>
+                    <li><a href="<?php echo isset($_SESSION['uyeID']) ? 'anasayfa.php' : 'index.php'; ?>"><i class="fas fa-home"></i> Ana Sayfa</a></li>
                     <?php
                     $query = "SELECT * FROM t_kategori"; // 'kategoriler' tablosundan tüm kategorileri çek
                     $result = mysqli_query($baglan, $query); // Veritabanı bağlantısı üzerinden sorguyu çalıştır

@@ -1,0 +1,26 @@
+Array
+(
+    [urunID] => 1
+    [miktar] => 3
+)
+Array
+(
+    [urunID] => 3
+    [miktar] => 4
+)
+Sepet ID: 22
+Array
+(
+    [urunID] => 1
+)
+Array
+(
+    [urunID] => 1
+    [miktar] => 2
+)
+Array
+(
+    [urunID] => 3
+    [miktar] => 5
+)
+Sepet ID: 23

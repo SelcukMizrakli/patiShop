@@ -2,11 +2,8 @@
 include 'ayar.php';
 session_start();
 
-// Kullanıcı giriş yapmamışsa giriş yapma sayfasına yönlendir
-if (!isset($_SESSION['uyeID'])) {
-    header('Location: girisYap.php');
-    exit;
-}
+// Kullanıcı giriş yapmamışsa ürün bilgilerini gösterebilir ancak sepete veya favorilere ekleme işlemi yapamaz
+$girisYapmisMi = isset($_SESSION['uyeID']);
 
 // Ürün ID kontrolü
 if (!isset($_GET['urunID'])) {
@@ -16,29 +13,37 @@ if (!isset($_GET['urunID'])) {
 
 $urunID = intval($_GET['urunID']);
 
-// Favorilere ekleme işlemi
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['favorilereEkle'])) {
-    $uyeID = $_SESSION['uyeID'];
-    $now = date('Y-m-d H:i:s');
-
-    // Favorilere ekleme sorgusu
-    $sql = "INSERT INTO t_favoriler (favoriUyeID, favoriUrunID, favoriOlusturmaTarih, favoriGuncellemeTarih, favoriSilmeTarih) 
-            VALUES ($uyeID, $urunID, '$now', '$now', NULL)";
-
-    if ($baglan->query($sql) === TRUE) {
-        $favoriMesaj = "Ürün favorilere eklendi!";
-    } else {
-        $favoriMesaj = "Ürün favorilere eklenemedi: " . $baglan->error;
-    }
-}
-
 // Ürün bilgilerini çek
-$sql = "SELECT u.urunAdi, u.urunFiyat, u.urunKategoriID, r.resimYolu, k.kategoriAdi, d.urunDAciklama, d.urunDHayvanTurID, d.urunDKampanyaID
-        FROM t_urunler u
-        LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
-        LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
-        LEFT JOIN t_urundetay d ON u.urunID = d.urunDurunID
-        WHERE u.urunID = $urunID";
+$sql = "
+    SELECT 
+        u.urunAdi, 
+        u.urunFiyat, 
+        u.urunKategoriID, 
+        u.urunKayitTarih, 
+        u.urunGuncellemeTarih, 
+        d.urunDAciklama, 
+        d.urunDHayvanTurID, 
+        d.urunDKampanyaID, 
+        s.stokMiktar, 
+        s.stokGirisTarih, 
+        s.stokCikisTarih, 
+        k.kategoriAdi, 
+        k.kategoriAciklama, 
+        k.kategoriSlug, 
+        ht.hayvanTurAdi, 
+        kp.kampanyaBaslik, 
+        kp.kampanyaIndirimYuzdesi, 
+        r.resimYolu 
+    FROM t_urunler u
+    LEFT JOIN t_urundetay d ON u.urunID = d.urunDurunID
+    LEFT JOIN t_stok s ON d.urunDStokID = s.stokID
+    LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
+    LEFT JOIN t_hayvanturleri ht ON d.urunDHayvanTurID = ht.hayvanTurID
+    LEFT JOIN t_kampanya kp ON d.urunDKampanyaID = kp.kampanyaID
+    LEFT JOIN t_resimiliskiler ri ON u.urunResimID = ri.resimIliskilerResimID
+    LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+    WHERE u.urunID = $urunID
+";
 $result = $baglan->query($sql);
 
 if ($result->num_rows > 0) {
@@ -1016,13 +1021,12 @@ if ($result->num_rows > 0) {
         Türkiye'nin her yerine ücretsiz kargo! 200 TL ve üzeri siparişlerde geçerlidir.
     </div>
 
-        <?php include 'headerHesap.php'; ?>
+    <?php include 'headerHesap.php'; ?>
 
     <div class="breadcrumb">
-        <a href="#">Ana Sayfa</a> <span>></span>
-        <a href="#">Köpek</a> <span>></span>
-        <a href="#">Köpek Mamaları</a> <span>></span>
-        <a href="#">Premium Köpek Maması</a>
+        <a href="index.php">Ana Sayfa</a> <span>></span>
+        <a href="kategori.php?kategoriID=<?php echo $urun['urunKategoriID']; ?>"><?php echo $urun['kategoriAdi']; ?></a> <span>></span>
+        <a href="urundetay.php?urunID=<?php echo $urunID; ?>"><?php echo $urun['urunAdi']; ?></a>
     </div>
 
     <div class="product-container">
@@ -1030,57 +1034,79 @@ if ($result->num_rows > 0) {
             <div class="main-image">
                 <img src="<?php echo $urun['resimYolu']; ?>" alt="<?php echo $urun['urunAdi']; ?>">
             </div>
-            <div class="thumbnails">
-                <div class="thumbnail active">
-                    <img src="/api/placeholder/80/80" alt="Premium Köpek Maması Görsel 1">
-                </div>
-                <div class="thumbnail">
-                    <img src="/api/placeholder/80/80" alt="Premium Köpek Maması Görsel 2">
-                </div>
-                <div class="thumbnail">
-                    <img src="/api/placeholder/80/80" alt="Premium Köpek Maması Görsel 3">
-                </div>
-                <div class="thumbnail">
-                    <img src="/api/placeholder/80/80" alt="Premium Köpek Maması Görsel 4">
-                </div>
-            </div>
         </div>
 
         <div class="product-info">
             <h1 class="product-name"><?php echo $urun['urunAdi']; ?></h1>
             <div class="product-brand">Marka: PatiPlus</div>
 
-            <div class="product-rating">
-                <div class="stars">★★★★★</div>
-                <a href="#reviews" class="review-count">(128 Değerlendirme)</a>
-            </div>
-
             <div class="product-price">
                 <?php echo number_format($urun['urunFiyat'], 2); ?> TL
             </div>
 
-            <div class="product-variants">
-                <label class="variant-label">Paket Boyutu:</label>
-                <div class="variant-options">
-                    <div class="variant-option">3 kg</div>
-                    <div class="variant-option selected">5 kg</div>
-                    <div class="variant-option">10 kg</div>
-                    <div class="variant-option">15 kg</div>
-                </div>
-            </div>
-
             <div class="quantity-selector">
-                <button>-</button>
-                <input type="number" value="1" min="1">
-                <button>+</button>
+                <button onclick="decreaseQuantity()">-</button>
+                <input type="number" id="quantity" value="1" min="1">
+                <button onclick="increaseQuantity()">+</button>
             </div>
 
-            <button onclick="addToCart(<?php echo $urunID; ?>)" class="add-to-cart">Sepete Ekle</button>
+            <script>
+                function increaseQuantity() {
+                    const quantityInput = document.getElementById('quantity');
+                    let currentValue = parseInt(quantityInput.value);
+                    quantityInput.value = currentValue + 1;
+                }
 
-            <!-- Favorilere ekleme formu -->
-            <form method="POST" action="">
-                <button type="submit" name="favorilereEkle" class="add-to-cart" style="background-color: #ff6b6b;">Favorilere Ekle</button>
-            </form>
+                function decreaseQuantity() {
+                    const quantityInput = document.getElementById('quantity');
+                    let currentValue = parseInt(quantityInput.value);
+                    if (currentValue > 1) {
+                        quantityInput.value = currentValue - 1;
+                    }
+                }
+
+                function addToCart(productId) {
+                    const quantity = document.getElementById('quantity').value;
+                    console.log('Ürün ID:', productId);
+                    console.log('Miktar:', quantity);
+
+                    fetch('add_to_cart.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                urunID: productId,
+                                miktar: quantity
+                            }),
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(data); // Sunucudan gelen yanıtı kontrol edin
+                            if (data.success) {
+                                alert(data.message);
+                            } else if (data.redirect) {
+                                window.location.href = data.redirect;
+                            } else {
+                                alert('Ürün sepete eklenemedi: ' + data.message);
+                            }
+                        })
+                        .catch(error => console.error('Hata:', error));
+                }
+            </script>
+
+            <button
+                onclick="<?php echo $girisYapmisMi ? "addToCart($urunID)" : "redirectToLoginModal()" ?>"
+                class="add-to-cart">
+                Sepete Ekle
+            </button>
+
+            <button
+                onclick="<?php echo $girisYapmisMi ? "addToFavorites($urunID)" : "redirectToLoginModal()" ?>"
+                class="add-to-cart"
+                style="background-color: #ff6b6b;">
+                Favorilere Ekle
+            </button>
 
             <?php if (isset($favoriMesaj)): ?>
                 <p><?php echo $favoriMesaj; ?></p>
@@ -1123,6 +1149,26 @@ if ($result->num_rows > 0) {
                         <td>Fiyat</td>
                         <td><?php echo number_format($urun['urunFiyat'], 2); ?> TL</td>
                     </tr>
+                    <tr>
+                        <td>Hayvan Türü</td>
+                        <td><?php echo $urun['hayvanTurAdi']; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Kampanya</td>
+                        <td><?php echo $urun['kampanyaBaslik'] ? $urun['kampanyaBaslik'] . ' (%' . $urun['kampanyaIndirimYuzdesi'] . ')' : 'Yok'; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Stok Miktarı</td>
+                        <td><?php echo $urun['stokMiktar']; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Stok Giriş Tarihi</td>
+                        <td><?php echo $urun['stokGirisTarih']; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Stok Çıkış Tarihi</td>
+                        <td><?php echo $urun['stokCikisTarih']; ?></td>
+                    </tr>
                 </table>
             </div>
 
@@ -1162,19 +1208,25 @@ if ($result->num_rows > 0) {
 
     <script>
         function addToCart(productId) {
+            const quantity = document.getElementById('quantity').value; // Miktar bilgisini al
+            console.log('Ürün ID:', productId);
+            console.log('Miktar:', quantity);
+
             fetch('add_to_cart.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        urunID: productId // Burada productId'nin doğru bir şekilde gönderildiğinden emin olun
+                        urunID: productId, // Ürün ID'si gönderiliyor
+                        miktar: quantity // Miktar bilgisi gönderiliyor
                     }),
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log(data); // Sunucudan gelen yanıtı kontrol edin
                     if (data.success) {
-                        alert('Ürün sepete eklendi!');
+                        alert(data.message);
                     } else if (data.redirect) {
                         window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
                     } else {
@@ -1211,6 +1263,11 @@ if ($result->num_rows > 0) {
                     }
                 })
                 .catch(error => console.error('Hata:', error));
+        }
+
+        function redirectToLoginModal() {
+            // Kullanıcı giriş yapmamışsa index.php sayfasına yönlendir ve giriş yap modalını aç
+            window.location.href = 'index.php?showLoginModal=true';
         }
     </script>
 </body>

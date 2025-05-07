@@ -1,7 +1,8 @@
 <?php
-// filepath: c:\xampp\htdocs\patishop\anasayfa.php
 include 'ayar.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -536,6 +537,79 @@ session_start();
                 flex-direction: column;
             }
         }
+
+        .carousel {
+            margin: 30px auto;
+            width: 80%;
+            position: relative;
+        }
+
+        .carousel-inner {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .carousel-item {
+            display: none;
+            position: relative;
+            width: 100%;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .carousel-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .carousel-item.active {
+            display: block;
+        }
+
+        .carousel-indicators {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .carousel-indicators button {
+            width: 10px;
+            height: 10px;
+            background-color: #ccc;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .carousel-indicators button.active {
+            background-color: #4CAF50;
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .carousel-control-prev {
+            left: 10px;
+        }
+
+        .carousel-control-next {
+            right: 10px;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
@@ -549,16 +623,49 @@ session_start();
     </div>
 
     <!-- Header -->
-        <?php include 'headerHesap.php'; ?>
+    <?php include 'headerHesap.php'; ?>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Patili Dostlarınız İçin En İyi Ürünler</h1>
-            <p>Kaliteli mama, sağlık ürünleri, oyuncaklar ve daha fazlası...</p>
-            <a href="#" class="cta-button">Alışverişe Başla</a>
+    <div id="carouselExampleIndicators" style="width: 50%; margin-left: 25%;" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            <?php
+            $sql = "SELECT urunID FROM t_urunler LIMIT 5"; // Carousel için 5 ürün sınırı
+            $result = $baglan->query($sql);
+            $i = 0;
+            while ($row = $result->fetch_assoc()) {
+                echo '<button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="' . $i . '" ' . ($i === 0 ? 'class="active" aria-current="true"' : '') . ' aria-label="Slide ' . ($i + 1) . '"></button>';
+                $i++;
+            }
+            ?>
         </div>
-    </section>
+        <div class="carousel-inner">
+            <?php
+            $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler LIMIT 5"; // Carousel için 5 ürün sınırı
+            $result = $baglan->query($sql);
+            $i = 0;
+            while ($row = $result->fetch_assoc()) {
+                // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
+                $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
+                $resimResult = $baglan->query($resimSql);
+                $resim = $resimResult->fetch_assoc();
+
+                echo '<div class="carousel-item ' . ($i === 0 ? 'active' : '') . '">';
+                echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
+                echo '<img src="' . $resim['resimYolu'] . '" class="d-block w-100" alt="' . $row['urunAdi'] . '">';
+                echo '</a>';
+                echo '</div>';
+                $i++;
+            }
+            ?>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Önceki</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Sonraki</span>
+        </button>
+    </div>
 
     <!-- Main Content -->
     <main class="container">
@@ -813,23 +920,25 @@ session_start();
 
         function addToCart(productId) {
             fetch('add_to_cart.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ urunID: productId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message); // Başarılı mesajı göster
-                } else if (data.redirect) {
-                    window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
-                } else {
-                    alert(data.message); // Hata mesajını göster
-                }
-            })
-            .catch(error => console.error('Hata:', error));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        urunID: productId
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message); // Başarılı mesajı göster
+                    } else if (data.redirect) {
+                        window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
+                    } else {
+                        alert(data.message); // Hata mesajını göster
+                    }
+                })
+                .catch(error => console.error('Hata:', error));
         }
     </script>
 </body>

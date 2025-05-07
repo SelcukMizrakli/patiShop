@@ -11,7 +11,7 @@ if (!isset($_SESSION['uyeID'])) {
 $uyeID = $_SESSION['uyeID'];
 
 // Kullanıcının sepet bilgilerini çek
-$sqlSepet = "SELECT sepetID FROM t_sepet WHERE sepetUyeID = $uyeID LIMIT 1";
+$sqlSepet = "SELECT sepetID FROM t_sepet WHERE sepetUyeID = $uyeID AND sepetGorunurluk = 1 LIMIT 1";
 $resultSepet = $baglan->query($sqlSepet);
 $sepetID = null;
 
@@ -120,6 +120,7 @@ if ($resultAdres->num_rows > 0) {
         <form action="odemeIsle.php" method="POST">
             <!-- Sepet ID -->
             <input type="hidden" name="sepetID" value="<?php echo $sepetID; ?>">
+            <?php echo "<script>console.log('Sepet ID: $sepetID');</script>"; ?>
 
             <!-- Adres Seçimi -->
             <div class="form-group">

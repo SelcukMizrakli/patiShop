@@ -12,6 +12,14 @@ $uyeID = $_SESSION['uyeID'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sepetID = isset($_POST['sepetID']) ? intval($_POST['sepetID']) : null;
+
+    if (empty($sepetID)) {
+        echo "<script>alert('Sepet ID eksik veya geçersiz.'); window.history.back();</script>";
+        exit;
+    }
+
+    file_put_contents('debug.log', "Sepet ID: $sepetID\n", FILE_APPEND);
+
     $adresID = isset($_POST['adresID']) ? intval($_POST['adresID']) : null;
     $yeniAdres = isset($_POST['yeniAdres']) ? trim($_POST['yeniAdres']) : null;
     $kartNo = isset($_POST['kartNo']) ? trim($_POST['kartNo']) : null;

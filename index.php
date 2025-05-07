@@ -487,8 +487,17 @@ include 'ayar.php';
                 flex-direction: column;
             }
         }
+
+        .carousel-item img {
+            width: 100%;
+            height: 500px; /* Yükseklik sınırı */
+            object-fit: cover; /* Resmin taşmasını önler ve düzgün bir şekilde sığmasını sağlar */
+            display: block;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>
@@ -508,8 +517,10 @@ include 'ayar.php';
                 </a>
                 <div class="search-login">
                     <div class="search-container">
-                        <input type="text" placeholder="Ürün, kategori veya marka ara...">
-                        <button type="submit"><i class="fas fa-search"></i></button>
+                        <form action="index.php" method="GET">
+                            <input type="text" name="arama" placeholder="Ürün, kategori veya marka ara..." value="<?php echo isset($_GET['arama']) ? htmlspecialchars($_GET['arama']) : ''; ?>">
+                            <button type="submit"><i class="fas fa-search"></i></button>
+                        </form>
                     </div>
                     <div class="user-actions">
                         <?php if (isset($_SESSION['uyeID'])): ?>
@@ -551,17 +562,92 @@ include 'ayar.php';
         </nav>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Patili Dostlarınız İçin En İyi Ürünler</h1>
-            <p>Kaliteli mama, sağlık ürünleri, oyuncaklar ve daha fazlası...</p>
-            <a href="#" class="cta-button">Alışverişe Başla</a>
+    <!-- Carousel Section -->
+    <div id="carouselExampleIndicators" style="width: 50%; margin-left: 25%;" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            <?php
+            $sql = "SELECT urunID FROM t_urunler LIMIT 5"; // Carousel için 5 ürün sınırı
+            $result = $baglan->query($sql);
+            $i = 0;
+            while ($row = $result->fetch_assoc()) {
+                echo '<button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="' . $i . '" ' . ($i === 0 ? 'class="active" aria-current="true"' : '') . ' aria-label="Slide ' . ($i + 1) . '"></button>';
+                $i++;
+            }
+            ?>
         </div>
-    </section>
+        <div class="carousel-inner">
+            <?php
+            $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler LIMIT 5"; // Carousel için 5 ürün sınırı
+            $result = $baglan->query($sql);
+            $i = 0;
+            while ($row = $result->fetch_assoc()) {
+                // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
+                $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
+                $resimResult = $baglan->query($resimSql);
+                $resim = $resimResult->fetch_assoc();
+
+                echo '<div class="carousel-item ' . ($i === 0 ? 'active' : '') . '">';
+                echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
+                echo '<img src="' . $resim['resimYolu'] . '" class="d-block w-100" alt="' . $row['urunAdi'] . '">';
+                echo '</a>';
+                echo '</div>';
+                $i++;
+            }
+            ?>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Önceki</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Sonraki</span>
+        </button>
+    </div>
 
     <!-- Main Content -->
     <main class="container">
+        <!-- Arama Sonuçları -->
+        <section class="product-section">
+            <h2 class="section-title">Arama Sonuçları</h2>
+            <div class="product-grid">
+                <?php
+                // Arama sorgusu
+                $arama = isset($_GET['arama']) ? $baglan->real_escape_string($_GET['arama']) : '';
+
+                $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler";
+                if (!empty($arama)) {
+                    $sql .= " WHERE urunAdi LIKE '%$arama%'";
+                }
+                $sql .= " LIMIT 8"; // Sadece 8 ürün göster
+
+                $result = $baglan->query($sql);
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
+                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
+                        $resimResult = $baglan->query($resimSql);
+                        $resim = $resimResult->fetch_assoc();
+
+                        echo '<div class="product-card">';
+                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
+                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<div class="content">';
+                        echo '<h3>' . $row['urunAdi'] . '</h3>';
+                        echo '<div class="price">' . number_format($row['urunFiyat'], 2) . ' TL</div>';
+                        echo '</div>';
+                        echo '</a>';
+                        echo '<button class="add-to-cart" onclick="addToCart(' . $row['urunID'] . ')">Sepete Ekle</button>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo '<p>Aramanıza uygun ürün bulunamadı.</p>';
+                }
+                ?>
+            </div>
+        </section>
+
         <!-- Categories Section -->
         <section class="category-section">
             <h2 class="section-title">Hayvan Kategorileri</h2>
@@ -657,6 +743,8 @@ include 'ayar.php';
                 ?>
             </div>
         </section>
+
+        
     </main>
 
     <!-- Footer -->
@@ -714,7 +802,7 @@ include 'ayar.php';
 
     <!-- Login Modal -->
     <div id="loginModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="width: 25%;">
             <span class="close">&times;</span>
             <h2 style="text-align: center; margin-bottom: 20px;">Giriş Yap</h2>
             <?php if (isset($_GET['error']) && $_GET['error'] == 1): ?>
@@ -816,25 +904,38 @@ include 'ayar.php';
 
         function addToCart(productId) {
             fetch('add_to_cart.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ urunID: productId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Ürün sepete eklendi!');
-                } else if (data.redirect) {
-                    window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
-                } else {
-                    alert('Ürün sepete eklenemedi: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Hata:', error));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        urunID: productId
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Ürün sepete eklendi!');
+                    } else if (data.redirect) {
+                        window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
+                    } else {
+                        alert('Ürün sepete eklenemedi: ' + data.message);
+                    }
+                })
+                .catch(error => console.error('Hata:', error));
+        }
+
+        function openLoginModal() {
+            modalLogin.style.display = "block";
         }
     </script>
+
+    <?php if (isset($_GET['showLoginModal']) && $_GET['showLoginModal'] === 'true'): ?>
+        <script>
+            // Giriş yap modalını aç
+            openLoginModal();
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>

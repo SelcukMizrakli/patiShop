@@ -56,18 +56,20 @@ t_urundetay: urunDID, urunDurunID, urunDHayvanTurID, urunDKampanyaID, urunDAcikl
 t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunResimID, urunKayitTarih, urunGuncellemeTarih
 t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin), uyeMail, uyeSifre, uyeAktiflikDurumu, uyeKayitTarih, uyeGuncellemeTarih, uyeSilmeTarih
 
-*** Yapilacaklar: 
-        favorilere ekleme ve sepete ekleme hatası düzeltilecek (Sepetim ve favorilerim kısmında olabilir hata)// Duzeltildi
+*** Yapilacaklar:
+
         **** admin paneline giris yapilabilmesi icin index.php'deki giris yapma kodlari guncellenecek (yetkiye gore muamele).
         **** ADMIN PANELINDEKI eksiklikler ayarlanacak (yeni urun ekleme, urun bilgileri duzenleme, uye yetkileri duzenleme)
         * favorilere ekleme sonrasi uyari duzeltilecek, urun eger favorilerdeyse tekrar favorilere eklenemeyecek (Cikartilacak)
-        ** arama butonu guncellenecek ve veri tabanindan urunAdi degerine gore urunleri gösterecek.
-        *** Carousel eklenecek (her kategoriden 1 rastgele urun gosterilebilir)
+
+
         * urun detay sayfasindaki header kismi headerHesap css kodlariyla duzenlenecek
         * girisYap.php sayfasi index.php'deki giris yapma formuna yonlendirmeli!
+
         * kayitOl.php header kismi guncellendi css kodlari duzenlenecek
-        ** headerHesap.php sayfasindan giriş yap butonuna basildiginda "//*[@id="loginBtn"]" path'ine gidip tiklamali!!!
-        *** urunDetay.php sayfasi guncellenecek (her urun kendi degerleri ve secenekleriyle yer alacak (kg, boyut vs), resimleri duzenlenecek (harici resim olmayacak))
-        ** kategorilere gore ozel sayfa ayarlanacak (index.php ve anasayfa.php'de)
+
         * indirimli urunler listesinde kampanya yok secenegi secili urunler listelenmeyecek!!!
+
         *** profilim kismindan favorilerden sepete ekleme duzenlenecek (kaldirilabilir)
+
+        ** güncel siparişlerim kısmındaki sipariş detaylarında siparişteki tüm ürünlere ait görseller, miktarlar ve fiyat yer almalı
