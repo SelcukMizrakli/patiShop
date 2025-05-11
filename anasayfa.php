@@ -559,7 +559,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
         .carousel-item img {
             width: 100%;
-            height: auto;
+            height: 500px; /* Yükseklik sınırı */
+            object-fit: cover; /* Resmin taşmasını önler ve düzgün bir şekilde sığmasını sağlar */
             display: block;
         }
 
@@ -567,51 +568,10 @@ if (session_status() === PHP_SESSION_NONE) {
             display: block;
         }
 
-        .carousel-indicators {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .carousel-indicators button {
-            width: 10px;
-            height: 10px;
-            background-color: #ccc;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .carousel-indicators button.active {
-            background-color: #4CAF50;
-        }
-
-        .carousel-control-prev,
-        .carousel-control-next {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-            z-index: 10;
-        }
-
-        .carousel-control-prev {
-            left: 10px;
-        }
-
-        .carousel-control-next {
-            right: 10px;
-        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>

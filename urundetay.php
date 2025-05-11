@@ -32,17 +32,18 @@ $sql = "
         k.kategoriSlug, 
         ht.hayvanTurAdi, 
         kp.kampanyaBaslik, 
-        kp.kampanyaIndirimYuzdesi, 
-        r.resimYolu 
+        kp.kampanyaIndirimYuzdesi,
+        r.resimYolu
     FROM t_urunler u
     LEFT JOIN t_urundetay d ON u.urunID = d.urunDurunID
     LEFT JOIN t_stok s ON d.urunDStokID = s.stokID
     LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
     LEFT JOIN t_hayvanturleri ht ON d.urunDHayvanTurID = ht.hayvanTurID
     LEFT JOIN t_kampanya kp ON d.urunDKampanyaID = kp.kampanyaID
-    LEFT JOIN t_resimiliskiler ri ON u.urunResimID = ri.resimIliskilerResimID
+    LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
     LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
     WHERE u.urunID = $urunID
+    LIMIT 1
 ";
 $result = $baglan->query($sql);
 
@@ -1032,7 +1033,7 @@ if ($result->num_rows > 0) {
     <div class="product-container">
         <div class="product-gallery">
             <div class="main-image">
-                <img src="<?php echo $urun['resimYolu']; ?>" alt="<?php echo $urun['urunAdi']; ?>">
+                <img src="<?php echo !empty($urun['resimYolu']) ? $urun['resimYolu'] : 'resim/default.jpg'; ?>" alt="<?php echo $urun['urunAdi']; ?>">
             </div>
         </div>
 
@@ -1092,6 +1093,35 @@ if ($result->num_rows > 0) {
                             }
                         })
                         .catch(error => console.error('Hata:', error));
+                }
+
+                function addToFavorites(productId) {
+                    fetch('add_to_favorites.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            urunID: productId
+                        }),
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('HTTP error! status: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(data); // Sunucu yanıtını kontrol edin
+                        if (data.success) {
+                            alert('Ürün favorilere eklendi!');
+                        } else if (data.redirect) {
+                            window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
+                        } else {
+                            alert('Ürün favorilere eklenemedi: ' + data.message);
+                        }
+                    })
+                    .catch(error => console.error('Hata:', error));
                 }
             </script>
 
@@ -1177,17 +1207,20 @@ if ($result->num_rows > 0) {
                 <div class="product-grid">
                     <?php
                     $kategoriID = $urun['urunKategoriID'];
-                    $relatedSql = "SELECT urunID, urunAdi, urunFiyat, resimYolu 
-                                   FROM t_urunler 
-                                   LEFT JOIN t_resimler ON t_urunler.urunResimID = t_resimler.resimID
-                                   WHERE urunKategoriID = $kategoriID AND urunID != $urunID
+                    $relatedSql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu 
+                                   FROM t_urunler u 
+                                   LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                                   LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                                   WHERE u.urunKategoriID = $kategoriID AND u.urunID != $urunID
+                                   GROUP BY u.urunID
                                    LIMIT 4";
                     $relatedResult = $baglan->query($relatedSql);
 
                     if ($relatedResult->num_rows > 0) {
                         while ($related = $relatedResult->fetch_assoc()) {
+                            $resimYolu = !empty($related['resimYolu']) ? $related['resimYolu'] : 'resim/default.jpg';
                             echo '<div class="product-card">';
-                            echo '<img src="' . $related['resimYolu'] . '" alt="' . $related['urunAdi'] . '">';
+                            echo '<img src="' . $resimYolu . '" alt="' . $related['urunAdi'] . '">';
                             echo '<h4>' . $related['urunAdi'] . '</h4>';
                             echo '<p>' . number_format($related['urunFiyat'], 2) . ' TL</p>';
                             echo '<a href="urundetay.php?urunID=' . $related['urunID'] . '" class="btn">Detay</a>';
@@ -1238,31 +1271,31 @@ if ($result->num_rows > 0) {
 
         function addToFavorites(productId) {
             fetch('add_to_favorites.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        urunID: productId
-                    }),
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('HTTP error! status: ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log(data); // Sunucu yanıtını kontrol edin
-                    if (data.success) {
-                        alert('Ürün favorilere eklendi!');
-                    } else if (data.redirect) {
-                        window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
-                    } else {
-                        alert('Ürün favorilere eklenemedi: ' + data.message);
-                    }
-                })
-                .catch(error => console.error('Hata:', error));
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    urunID: productId
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data); // Sunucu yanıtını kontrol edin
+                if (data.success) {
+                    alert('Ürün favorilere eklendi!');
+                } else if (data.redirect) {
+                    window.location.href = data.redirect; // Giriş yapma sayfasına yönlendir
+                } else {
+                    alert('Ürün favorilere eklenemedi: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Hata:', error));
         }
 
         function redirectToLoginModal() {

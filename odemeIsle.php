@@ -1,5 +1,4 @@
 <?php
-// filepath: c:\xampp\htdocs\patishop\odemeIsle.php
 include 'ayar.php';
 session_start();
 
@@ -11,23 +10,31 @@ if (!isset($_SESSION['uyeID'])) {
 $uyeID = $_SESSION['uyeID'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $sepetID = isset($_POST['sepetID']) ? intval($_POST['sepetID']) : null;
-
-    if (empty($sepetID)) {
-        echo "<script>alert('Sepet ID eksik veya geçersiz.'); window.history.back();</script>";
-        exit;
-    }
-
-    file_put_contents('debug.log', "Sepet ID: $sepetID\n", FILE_APPEND);
-
     $adresID = isset($_POST['adresID']) ? intval($_POST['adresID']) : null;
     $yeniAdres = isset($_POST['yeniAdres']) ? trim($_POST['yeniAdres']) : null;
     $kartNo = isset($_POST['kartNo']) ? trim($_POST['kartNo']) : null;
     $sonKullanma = isset($_POST['sonKullanma']) ? trim($_POST['sonKullanma']) : null;
     $cvv = isset($_POST['cvv']) ? trim($_POST['cvv']) : null;
 
+    // Kullanıcının sepetteki tüm ürünlerinin sepetID'lerini al
+    $sqlSepet = "SELECT sepetID FROM t_sepet WHERE sepetUyeID = $uyeID AND sepetGorunurluk = 1";
+    $resultSepet = $baglan->query($sqlSepet);
+    $sepetIDList = [];
+    if ($resultSepet && $resultSepet->num_rows > 0) {
+        while ($row = $resultSepet->fetch_assoc()) {
+            $sepetIDList[] = $row['sepetID'];
+        }
+    }
+
+    if (empty($sepetIDList)) {
+        echo "<script>alert('Sepetinizde ürün bulunmamaktadır.'); window.history.back();</script>";
+        exit;
+    }
+
+    $sepetIDString = implode(',', $sepetIDList); // <-- DİKKAT: Virgülle ayırıyoruz!
+
     // Eksik bilgi kontrolü
-    if (empty($sepetID) || empty($kartNo) || empty($sonKullanma) || empty($cvv) || (empty($adresID) && empty($yeniAdres))) {
+    if (empty($kartNo) || empty($sonKullanma) || empty($cvv) || (empty($adresID) && empty($yeniAdres))) {
         echo "<script>alert('Lütfen tüm alanları doldurun.'); window.history.back();</script>";
         exit;
     }
@@ -46,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Sipariş bilgilerini t_siparis tablosuna ekle
     $sqlSiparis = "INSERT INTO t_siparis (siparisUyeID, siparisAdresID, siparisSepetID, siparisOdemeTarih, siparisDurum, siparisOdemeDurum) 
-                   VALUES ($uyeID, $adresID, $sepetID, NOW(), 0, 1)";
+               VALUES ($uyeID, $adresID, '$sepetIDString', NOW(), 0, 1)";
     if ($baglan->query($sqlSiparis) === TRUE) {
         $siparisID = $baglan->insert_id;
 
@@ -55,18 +62,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $kargoNo = uniqid('KARGO');
         $kargoDurumu = 0;
         $kargoyaVerilmeTarihi = "NULL";
-
-        // Teslimat tarihini şu anki tarihten 3 ile 8 gün sonrası olarak ayarla
         $teslimatGun = rand(3, 8);
         $kargoTeslimatTarihi = date('Y-m-d', strtotime("+$teslimatGun days"));
 
         $sqlKargo = "INSERT INTO t_kargo (kargoSiparisID, kargoNo, kargoDurumu, kargoFirmaAdi, kargoyaVerilmeTarihi, kargoTeslimatTarihi) 
                      VALUES ($siparisID, '$kargoNo', $kargoDurumu, '$kargoFirmaAdi', $kargoyaVerilmeTarihi, '$kargoTeslimatTarihi')";
         if ($baglan->query($sqlKargo) === TRUE) {
-            // Sepeti görünmez yap
-            $sqlSepetGuncelle = "UPDATE t_sepet SET sepetGorunurluk = 0 WHERE sepetID = $sepetID";
+            // Sepetteki tüm ürünleri görünmez yap
+            $sqlSepetGuncelle = "UPDATE t_sepet SET sepetGorunurluk = 0 WHERE sepetID IN ($sepetIDString)";
             if ($baglan->query($sqlSepetGuncelle) === TRUE) {
-                // Ödeme başarılı mesajı ve yönlendirme
                 echo "<script>alert('Ödeme Başarılı! Siparişiniz oluşturuldu.'); window.location.href = 'profil.php#current-order';</script>";
                 exit;
             } else {
@@ -82,4 +86,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-?>

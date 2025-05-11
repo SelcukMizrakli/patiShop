@@ -534,7 +534,7 @@ include 'ayar.php';
                                 </div>
                             </div>
                         <?php else: ?>
-                            <button class="login-btn" id="loginBtn"><i class="fas fa-user"></i> Giriş Yap</button>
+                            <button class="login-btn" id="loginBtn" onclick="openLoginModal()"><i class="fas fa-user"></i> Giriş Yap</button>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -577,18 +577,22 @@ include 'ayar.php';
         </div>
         <div class="carousel-inner">
             <?php
-            $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler LIMIT 5"; // Carousel için 5 ürün sınırı
+            // Ana sorguyu güncelledik, resim tabloları ile JOIN yaptık
+            $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu 
+                    FROM t_urunler u 
+                    LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID 
+                    LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID 
+                    GROUP BY u.urunID 
+                    LIMIT 5";
+            
             $result = $baglan->query($sql);
             $i = 0;
             while ($row = $result->fetch_assoc()) {
-                // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
-                $resimResult = $baglan->query($resimSql);
-                $resim = $resimResult->fetch_assoc();
-
+                $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/patiShopLogo.png'; // Resim yoksa varsayılan resim
+                
                 echo '<div class="carousel-item ' . ($i === 0 ? 'active' : '') . '">';
-                echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
-                echo '<img src="' . $resim['resimYolu'] . '" class="d-block w-100" alt="' . $row['urunAdi'] . '">';
+                echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
+                echo '<img src="' . $resimYolu . '" class="d-block w-100" alt="' . $row['urunAdi'] . '">';
                 echo '</a>';
                 echo '</div>';
                 $i++;
@@ -615,24 +619,26 @@ include 'ayar.php';
                 // Arama sorgusu
                 $arama = isset($_GET['arama']) ? $baglan->real_escape_string($_GET['arama']) : '';
 
-                $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler";
+                // Arama sorgusu - güncellenmiş hali
+                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu 
+                        FROM t_urunler u 
+                        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID 
+                        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID";
+
                 if (!empty($arama)) {
-                    $sql .= " WHERE urunAdi LIKE '%$arama%'";
+                    $sql .= " WHERE u.urunAdi LIKE '%$arama%'";
                 }
-                $sql .= " LIMIT 8"; // Sadece 8 ürün göster
+                $sql .= " GROUP BY u.urunID LIMIT 8"; // Her ürün için tek bir sonuç
 
                 $result = $baglan->query($sql);
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
-                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
-                        $resimResult = $baglan->query($resimSql);
-                        $resim = $resimResult->fetch_assoc();
-
+                        $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/patiShopLogo.png';
+                        
                         echo '<div class="product-card">';
-                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
-                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
+                        echo '<img src="' . $resimYolu . '" alt="' . $row['urunAdi'] . '">';
                         echo '<div class="content">';
                         echo '<h3>' . $row['urunAdi'] . '</h3>';
                         echo '<div class="price">' . number_format($row['urunFiyat'], 2) . ' TL</div>';
@@ -679,19 +685,23 @@ include 'ayar.php';
             <h2 class="section-title">Popüler Ürünler</h2>
             <div class="product-grid">
                 <?php
-                $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler LIMIT 4";
+                // Popüler Ürünler sorgusu - güncellenmiş hali
+                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu 
+                        FROM t_urunler u 
+                        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID 
+                        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID 
+                        GROUP BY u.urunID 
+                        LIMIT 4";
+
                 $result = $baglan->query($sql);
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
-                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
-                        $resimResult = $baglan->query($resimSql);
-                        $resim = $resimResult->fetch_assoc();
-
+                        $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/patiShopLogo.png';
+                        
                         echo '<div class="product-card">';
-                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
-                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
+                        echo '<img src="' . $resimYolu . '" alt="' . $row['urunAdi'] . '">';
                         echo '<div class="content">';
                         echo '<h3>' . $row['urunAdi'] . '</h3>';
                         echo '<div class="price">' . number_format($row['urunFiyat'], 2) . ' TL</div>';
@@ -711,24 +721,26 @@ include 'ayar.php';
             <h2 class="section-title">İndirimli Ürünler</h2>
             <div class="product-grid">
                 <?php
-                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, u.urunResimID, k.kampanyaIndirimYuzdesi 
+                // İndirimli Ürünler sorgusu - güncellenmiş hali
+                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu, k.kampanyaIndirimYuzdesi 
                         FROM t_urunler u
                         INNER JOIN t_kampanya k ON u.urunID = k.kampanyaID
+                        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID 
+                        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID 
+                        GROUP BY u.urunID
                         LIMIT 4";
+
                 $result = $baglan->query($sql);
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
-                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
-                        $resimResult = $baglan->query($resimSql);
-                        $resim = $resimResult->fetch_assoc();
+                        $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/patiShopLogo.png';
 
                         $indirimliFiyat = $row['urunFiyat'] * (1 - $row['kampanyaIndirimYuzdesi'] / 100);
 
                         echo '<div class="product-card">';
                         echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
-                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<img src="' . $resimYolu . '" alt="' . $row['urunAdi'] . '">';
                         echo '<div class="content">';
                         echo '<h3>' . $row['urunAdi'] . '</h3>';
                         echo '<div class="price">' . number_format($indirimliFiyat, 2) . ' TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">' . number_format($row['urunFiyat'], 2) . ' TL</span></div>';
@@ -805,8 +817,16 @@ include 'ayar.php';
         <div class="modal-content" style="width: 25%;">
             <span class="close">&times;</span>
             <h2 style="text-align: center; margin-bottom: 20px;">Giriş Yap</h2>
-            <?php if (isset($_GET['error']) && $_GET['error'] == 1): ?>
-                <p style="color: red; text-align: center;">E-posta veya şifre hatalı. Lütfen tekrar deneyin.</p>
+            <?php if (isset($_GET['error'])): ?>
+                <p style="color: red; text-align: center;">
+                    <?php
+                    if ($_GET['error'] === 'missing') {
+                        echo "Lütfen tüm alanları doldurun.";
+                    } elseif ($_GET['error'] === 'invalid') {
+                        echo "E-posta veya şifre hatalı. Lütfen tekrar deneyin.";
+                    }
+                    ?>
+                </p>
             <?php endif; ?>
             <form action="girisYap.php" method="POST">
                 <div class="form-group">
@@ -824,6 +844,34 @@ include 'ayar.php';
             </form>
         </div>
     </div>
+
+    <script>
+        // Login Modal
+        var modalLogin = document.getElementById("loginModal");
+        var spanLogin = document.getElementsByClassName("close")[0];
+
+        spanLogin.onclick = function() {
+            modalLogin.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modalLogin) {
+                modalLogin.style.display = "none";
+            }
+        }
+
+        function openLoginModal() {
+            modalLogin.style.display = "block";
+        }
+    </script>
+
+    <?php if (isset($_GET['showLoginModal']) && $_GET['showLoginModal'] === 'true'): ?>
+        <script>
+            // Giriş yap modalını aç
+            openLoginModal();
+        </script>
+    <?php endif; ?>
+
     <!-- Register Modal -->
     <div id="registerModal" class="modal">
         <div class="modal-content">
@@ -855,25 +903,6 @@ include 'ayar.php';
     </div>
 
     <script>
-        // Login Modal
-        var modalLogin = document.getElementById("loginModal");
-        var btnLogin = document.getElementById("loginBtn");
-        var spanLogin = document.getElementsByClassName("close")[0];
-
-        btnLogin.onclick = function() {
-            modalLogin.style.display = "block";
-        }
-
-        spanLogin.onclick = function() {
-            modalLogin.style.display = "none";
-        }
-
-        window.onclick = function(event) {
-            if (event.target == modalLogin) {
-                modalLogin.style.display = "none";
-            }
-        }
-
         // Register Modal
         var modalRegister = document.getElementById("registerModal");
         var btnRegister = document.getElementById("registerbtn");

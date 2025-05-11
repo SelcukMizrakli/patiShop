@@ -255,7 +255,8 @@ include('ayar.php');
                     $result = mysqli_query($baglan, $query); // Veritabanı bağlantısı üzerinden sorguyu çalıştır
                     if ($result && mysqli_num_rows($result) > 0) {
                         while ($row = mysqli_fetch_assoc($result)) {
-                            echo '<li><a href="kategori.php?id=' . $row['kategoriID'] . '"><i class="fas fa-paw"></i> ' . htmlspecialchars($row['kategoriAdi']) . '</a></li>';
+                            // kategoriID yerine kategoriSlug kullanarak SEO dostu URL
+                            echo '<li><a href="kategori.php?kategori=' . $row['kategoriSlug'] . '"><i class="fas fa-paw"></i> ' . htmlspecialchars($row['kategoriAdi']) . '</a></li>';
                         }
                     }
                     ?>

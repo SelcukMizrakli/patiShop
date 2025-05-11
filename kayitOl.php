@@ -1,3 +1,69 @@
+<?php
+// filepath: c:\xampp\htdocs\patishop\kayitOl.php
+include 'ayar.php';
+session_start();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Formdan gelen verileri al
+    $fullname = isset($_POST['fullname']) ? $baglan->real_escape_string($_POST['fullname']) : null;
+    $email = isset($_POST['email']) ? $baglan->real_escape_string($_POST['email']) : null;
+    $phone = isset($_POST['phone']) ? $baglan->real_escape_string($_POST['phone']) : null;
+    $password = isset($_POST['password']) ? $baglan->real_escape_string($_POST['password']) : null;
+    $confirmPassword = isset($_POST['confirm-password']) ? $baglan->real_escape_string($_POST['confirm-password']) : null;
+
+    // Eksik bilgi kontrolü
+    if (empty($fullname) || empty($email) || empty($phone) || empty($password) || empty($confirmPassword)) {
+        echo "<script>alert('Lütfen tüm alanları doldurun.'); window.history.back();</script>";
+        exit;
+    }
+
+    // Şifrelerin eşleşip eşleşmediğini kontrol et
+    if ($password !== $confirmPassword) {
+        echo "<script>alert('Şifreler eşleşmiyor.'); window.history.back();</script>";
+        exit;
+    }
+
+    // E-posta adresinin zaten kayıtlı olup olmadığını kontrol et
+    $sqlCheckEmail = "SELECT uyeID FROM t_uyeler WHERE uyeMail = '$email'";
+    $resultCheckEmail = $baglan->query($sqlCheckEmail);
+
+    if ($resultCheckEmail->num_rows > 0) {
+        echo "<script>alert('Bu e-posta adresi zaten kayıtlı. Lütfen farklı bir e-posta adresi kullanın.'); window.history.back();</script>";
+        exit;
+    }
+
+    // Ad ve soyadı ayır
+    $nameParts = explode(' ', $fullname);
+    $firstName = $baglan->real_escape_string(array_shift($nameParts));
+    $lastName = $baglan->real_escape_string(implode(' ', $nameParts));
+
+    // Şifreyi hashle
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+    // Kullanıcıyı veri tabanına ekle
+    $sql = "INSERT INTO t_uyeler (uyeAd, uyeSoyad, uyeTelNo, uyeYetki, uyeMail, uyeSifre, uyeAktiflikDurumu, uyeKayitTarih) 
+            VALUES ('$firstName', '$lastName', '$phone', 0, '$email', '$hashedPassword', 1, NOW())";
+
+    if ($baglan->query($sql) === TRUE) {
+        // Yeni eklenen kullanıcının ID'sini al
+        $userID = $baglan->insert_id;
+
+        // Oturum bilgilerini ayarla
+        $_SESSION['uyeID'] = $userID;
+        $_SESSION['uyeAd'] = $firstName;
+        $_SESSION['uyeSoyad'] = $lastName;
+        $_SESSION['uyeYetki'] = 0; // Yeni kullanıcı yetkisi 0 (üye)
+
+        // Kullanıcıyı anasayfa.php'ye yönlendir
+        header('Location: anasayfa.php');
+        exit;
+    } else {
+        // Hata durumunda mesaj göster
+        echo "<script>alert('Kayıt başarısız: " . $baglan->error . "'); window.history.back();</script>";
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="tr">
 
@@ -202,7 +268,7 @@
   <div class="main-content">
     <h2>Hesap Oluştur</h2>
 
-    <form>
+    <form action="kayitOl.php" method="POST">
       <div class="form-group">
         <label for="fullname">Ad Soyad</label>
         <input type="text" id="fullname" name="fullname" required>
@@ -233,7 +299,7 @@
       </div>
 
       <div class="login-link">
-        Zaten hesabınız var mı? <a href="#">Giriş Yap</a>
+        Zaten hesabınız var mı? <a href="index.php?showLoginModal=true">Giriş Yap</a>
       </div>
     </form>
   </div>

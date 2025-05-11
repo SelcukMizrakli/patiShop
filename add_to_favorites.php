@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 
 // Kullanıcı giriş yapmamışsa giriş yapma formuna yönlendir
 if (!isset($_SESSION['uyeID'])) {
-    echo json_encode(['success' => false, 'redirect' => 'girisYap.php']);
+    echo json_encode(['success' => false, 'redirect' => 'index.php?showLoginModal=true']);
     exit;
 }
 
@@ -22,13 +22,19 @@ if (!isset($data['urunID']) || empty($data['urunID'])) {
 
 $urunID = intval($data['urunID']);
 $uyeID = $_SESSION['uyeID'];
-$now = date('Y-m-d H:i:s');
 
-// Favorilere ekleme sorgusu
-$sql = "INSERT INTO t_favoriler (favoriUyeID, favoriUrunID, favoriOlusturmaTarih, favoriGuncellenmeTarih, favoriSilmeTarih) 
-        VALUES ($uyeID, $urunID, '$now', '$now', NULL)";
+// Ürün zaten favorilerde mi kontrol et
+$sqlCheck = "SELECT * FROM t_favoriler WHERE favoriUyeID = $uyeID AND favoriUrunID = $urunID";
+$resultCheck = $baglan->query($sqlCheck);
 
-if ($baglan->query($sql) === TRUE) {
+if ($resultCheck->num_rows > 0) {
+    echo json_encode(['success' => false, 'message' => 'Bu ürün zaten favorilerinizde.']);
+    exit;
+}
+
+// Ürünü favorilere ekle
+$sqlInsert = "INSERT INTO t_favoriler (favoriUyeID, favoriUrunID, favoriOlusturmaTarih) VALUES ($uyeID, $urunID, NOW())";
+if ($baglan->query($sqlInsert) === TRUE) {
     echo json_encode(['success' => true, 'message' => 'Ürün favorilere eklendi.']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Ürün favorilere eklenemedi: ' . $baglan->error]);

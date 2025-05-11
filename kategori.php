@@ -3,55 +3,48 @@ session_start();
 include 'ayar.php';
 include 'headerHesap.php';
 
-// Arama terimini al
-$arama = isset($_GET['arama']) ? $baglan->real_escape_string($_GET['arama']) : null;
+// Kategori slug'ını al
+$kategoriSlug = isset($_GET['kategori']) ? $baglan->real_escape_string($_GET['kategori']) : '';
 
-// Kategori ID'sini al
-$kategoriID = isset($_GET['kategoriID']) ? intval($_GET['kategoriID']) : null;
+// Arama parametresini al
+$arama = isset($_GET['arama']) ? $baglan->real_escape_string($_GET['arama']) : '';
 
-// Eğer arama yapılmışsa kategori kontrolü yapma
+// SQL sorgusunu hazırla
 if ($arama) {
+    // Arama yapılıyorsa
     $urunSql = "
-        SELECT u.urunID, u.urunAdi, u.urunFiyat, u.urunResimID 
+        SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu, k.kategoriAdi
         FROM t_urunler u
+        LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
+        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
         WHERE u.urunAdi LIKE '%$arama%'
+        GROUP BY u.urunID
     ";
-    $kategori = null; // Arama yapıldığında kategori bilgisi kullanılmaz
 } else {
-    // Eğer kategori ID yoksa varsayılan bir kategori seç
-    if (!$kategoriID) {
-        $defaultKategoriSql = "SELECT kategoriID FROM t_kategori WHERE kategoriDurum = 1 LIMIT 1";
-        $defaultKategoriResult = $baglan->query($defaultKategoriSql);
-
-        if ($defaultKategoriResult->num_rows === 0) {
-            die("Hiçbir kategori bulunamadı.");
-        }
-
-        $defaultKategori = $defaultKategoriResult->fetch_assoc();
-        $kategoriID = $defaultKategori['kategoriID'];
-    }
-
-    // Kategori bilgilerini çekmek için kategoriID'yi kullanarak kategoriSlug değerini bul
-    $kategoriSlugSql = "SELECT kategoriSlug, kategoriAdi, kategoriAciklama FROM t_kategori WHERE kategoriID = $kategoriID AND kategoriDurum = 1";
-    $kategoriSlugResult = $baglan->query($kategoriSlugSql);
-
-    if ($kategoriSlugResult->num_rows === 0) {
-        die("Geçersiz kategori.");
-    }
-
-    $kategori = $kategoriSlugResult->fetch_assoc();
-
-    // Kategoriye göre ürünleri çek
+    // Kategoriye göre listeleme yapılıyorsa
     $urunSql = "
-        SELECT u.urunID, u.urunAdi, u.urunFiyat, u.urunResimID 
+        SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu, k.kategoriAdi
         FROM t_urunler u
         INNER JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
-        WHERE k.kategoriSlug = '{$kategori['kategoriSlug']}' AND k.kategoriDurum = 1
+        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+        WHERE k.kategoriSlug = '$kategoriSlug'
+        GROUP BY u.urunID
     ";
 }
 
-// Ürünleri sorgula
+// Sorguyu çalıştır
 $urunResult = $baglan->query($urunSql);
+
+// Sayfa başlığı için kategori adını al
+$kategoriAdi = '';
+if ($kategoriSlug) {
+    $kategoriSorgu = $baglan->query("SELECT kategoriAdi FROM t_kategori WHERE kategoriSlug = '$kategoriSlug'");
+    if ($kategoriSorgu->num_rows > 0) {
+        $kategoriAdi = $kategoriSorgu->fetch_assoc()['kategoriAdi'];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -127,37 +120,37 @@ $urunResult = $baglan->query($urunSql);
 </head>
 
 <body>
-    <div class="container">
-        <h1 class="mt-4">
-            <?php echo $arama ? "Arama Sonuçları: " . htmlspecialchars($arama) : $kategori['kategoriAdi'] . " Ürünleri"; ?>
+    <div class="container mt-4">
+        <h1 class="mb-4">
+            <?php 
+            if ($arama) {
+                echo 'Arama Sonuçları: "' . htmlspecialchars($arama) . '"';
+            } else {
+                echo htmlspecialchars($kategoriAdi);
+            }
+            ?>
         </h1>
-        <?php if (!$arama && $kategori): ?>
-            <p><?php echo $kategori['kategoriAciklama']; ?></p>
-        <?php endif; ?>
 
-        <!-- Ürünler -->
         <div class="product-grid">
             <?php
             if ($urunResult->num_rows > 0) {
                 while ($urun = $urunResult->fetch_assoc()) {
-                    // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                    $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $urun['urunResimID'];
-                    $resimResult = $baglan->query($resimSql);
-                    $resim = $resimResult->fetch_assoc();
-
-                    echo '<div class="product-card">';
-                    echo '<a href="urundetay.php?urunID=' . $urun['urunID'] . '">';
-                    echo '<img src="' . $resim['resimYolu'] . '" alt="' . $urun['urunAdi'] . '">';
-                    echo '<div class="content">';
-                    echo '<h3>' . $urun['urunAdi'] . '</h3>';
-                    echo '<div class="price">' . number_format($urun['urunFiyat'], 2) . ' TL</div>';
-                    echo '</div>';
-                    echo '</a>';
-                    echo '<button class="add-to-cart" onclick="addToCart(' . $urun['urunID'] . ')">Sepete Ekle</button>';
-                    echo '</div>';
+                    $resimYolu = !empty($urun['resimYolu']) ? $urun['resimYolu'] : 'resim/default.jpg';
+                    ?>
+                    <div class="product-card">
+                        <a href="urundetay.php?urunID=<?php echo $urun['urunID']; ?>">
+                            <img src="<?php echo htmlspecialchars($resimYolu); ?>" alt="<?php echo htmlspecialchars($urun['urunAdi']); ?>">
+                            <div class="content">
+                                <h3><?php echo htmlspecialchars($urun['urunAdi']); ?></h3>
+                                <div class="price"><?php echo number_format($urun['urunFiyat'], 2); ?> TL</div>
+                            </div>
+                        </a>
+                        <button class="add-to-cart" onclick="addToCart(<?php echo $urun['urunID']; ?>)">Sepete Ekle</button>
+                    </div>
+                    <?php
                 }
             } else {
-                echo '<p>Aramanıza uygun ürün bulunamadı.</p>';
+                echo '<p class="no-results">Ürün bulunamadı.</p>';
             }
             ?>
         </div>
@@ -187,6 +180,7 @@ $urunResult = $baglan->query($urunSql);
                 .catch(error => console.error('Hata:', error));
         }
     </script>
+
 </body>
 
 </html>

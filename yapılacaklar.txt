@@ -32,7 +32,7 @@ Veri tabanı tabloları ve sütunları:
         t_siparis: siparisID, siparisUyeID, siparisSepetID, siparisDurum (0 hazirlaniyor, 1 kargoya verildi, 2 teslim edildi), siparisOdemeDurum (0 basarisiz, 1 basarili), siparisOdemeTarih, siparisAdresID
         t_stok: stokID, stokUrunID, stokMiktar, stokGirisTarih, stokCikisTarih
         t_urundetay: urunDID, urunDurunID, urunDHayvanTurID, urunDKampanyaID, urunDAciklama, urunDStokID
-        t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunResimID, urunKayitTarih, urunGuncellemeTarih
+        t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunKayitTarih, urunGuncellemeTarih
         t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin), uyeMail, uyeSifre, uyeAktiflikDurumu, uyeKayitTarih, uyeGuncellemeTarih, uyeSilmeTarih
 
 ** admin panelindeki menüler için detay sayfaları oluşturulacak
@@ -53,7 +53,7 @@ t_sepet: sepetID, sepetUrunID, sepetUyeID, sepetUrunFiyat, sepetUrunMiktar, sepe
 t_siparis: siparisID, siparisUyeID, siparisSepetID, siparisDurum (0 hazirlaniyor, 1 kargoya verildi, 2 teslim edildi), siparisOdemeDurum (0 basarisiz, 1 basarili), siparisOdemeTarih, siparisAdresID
 t_stok: stokID, stokUrunID, stokMiktar, stokGirisTarih, stokCikisTarih
 t_urundetay: urunDID, urunDurunID, urunDHayvanTurID, urunDKampanyaID, urunDAciklama, urunDStokID
-t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunResimID, urunKayitTarih, urunGuncellemeTarih
+t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunKayitTarih, urunGuncellemeTarih
 t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin), uyeMail, uyeSifre, uyeAktiflikDurumu, uyeKayitTarih, uyeGuncellemeTarih, uyeSilmeTarih
 
 *** Yapilacaklar:
@@ -74,3 +74,5 @@ t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin)
 
         ** güncel siparişlerim kısmındaki sipariş detaylarında siparişteki tüm ürünlere ait görseller, miktarlar ve fiyat yer almalı
         
+
+        siparişlerim kısmındaki bug düzeltilecek, güncel siparişim kısmında görünecek

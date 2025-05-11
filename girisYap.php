@@ -3,29 +3,53 @@ include 'ayar.php';
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $baglan->real_escape_string($_POST['email']);
-    $password = $baglan->real_escape_string($_POST['password']);
+    // Gönderilen verileri al
+    $email = isset($_POST['email']) ? $baglan->real_escape_string($_POST['email']) : null;
+    $password = isset($_POST['password']) ? $_POST['password'] : null;
+
+    // Eğer email veya şifre gönderilmediyse index.php'ye yönlendir ve loginModal'ı aç
+    if (empty($email) || empty($password)) {
+        header('Location: index.php?showLoginModal=true&error=missing');
+        exit;
+    }
 
     // Kullanıcı bilgilerini kontrol et
-    $sql = "SELECT * FROM t_uyeler WHERE uyeMail = '$email' AND uyeSifre = '$password' AND uyeAktiflikDurumu = 1";
+    $sql = "SELECT * FROM t_uyeler WHERE uyeMail = '$email' AND uyeAktiflikDurumu = 1";
     $result = $baglan->query($sql);
 
     if ($result->num_rows > 0) {
+        // Kullanıcı bilgilerini al
         $user = $result->fetch_assoc();
-        // Kullanıcı bilgilerini oturuma kaydet
-        $_SESSION['uyeID'] = $user['uyeID'];
-        $_SESSION['uyeAd'] = $user['uyeAd'];
-        $_SESSION['uyeSoyad'] = $user['uyeSoyad'];
-        $_SESSION['uyeYetki'] = $user['uyeYetki'];
 
-        // Anasayfaya yönlendir
-        header('Location: anasayfa.php');
-        exit;
+        // Şifreyi doğrula
+        if (password_verify($password, $user['uyeSifre'])) {
+            // Kullanıcı bilgilerini oturuma kaydet
+            $_SESSION['uyeID'] = $user['uyeID'];
+            $_SESSION['uyeAd'] = $user['uyeAd'];
+            $_SESSION['uyeSoyad'] = $user['uyeSoyad'];
+            $_SESSION['uyeYetki'] = $user['uyeYetki'];
+
+            // Kullanıcı yetkisine göre yönlendirme
+            if ($user['uyeYetki'] == 2) { // Admin
+                header('Location: adminpanel.php');
+            } else { // Normal kullanıcı
+                header('Location: anasayfa.php');
+            }
+            exit;
+        } else {
+            // Hatalı şifre durumunda index.php'ye yönlendir ve loginModal'ı aç
+            header('Location: index.php?showLoginModal=true&error=invalid');
+            exit;
+        }
     } else {
-        // Hatalı giriş durumunda geri yönlendir
-        header('Location: index.php?error=1');
+        // Kullanıcı bulunamadıysa index.php'ye yönlendir ve loginModal'ı aç
+        header('Location: index.php?showLoginModal=true&error=notfound');
         exit;
     }
+} else {
+    // Eğer POST isteği değilse index.php'ye yönlendir ve loginModal'ı aç
+    header('Location: index.php?showLoginModal=true');
+    exit;
 }
 ?>
 

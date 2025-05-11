@@ -4,21 +4,11 @@ include 'ayar.php';
 session_start();
 
 if (!isset($_SESSION['uyeID'])) {
-    header('Location: girisYap.php');
+    header('Location: index.php?showLoginModal=true');
     exit;
 }
 
 $uyeID = $_SESSION['uyeID'];
-
-// Kullanıcının sepet bilgilerini çek
-$sqlSepet = "SELECT sepetID FROM t_sepet WHERE sepetUyeID = $uyeID AND sepetGorunurluk = 1 LIMIT 1";
-$resultSepet = $baglan->query($sqlSepet);
-$sepetID = null;
-
-if ($resultSepet->num_rows > 0) {
-    $rowSepet = $resultSepet->fetch_assoc();
-    $sepetID = $rowSepet['sepetID'];
-}
 
 // Kullanıcının adreslerini çek
 $sqlAdres = "SELECT adresID, adresBilgisi FROM t_adresler WHERE adresUyeID = $uyeID";
@@ -28,6 +18,65 @@ if ($resultAdres->num_rows > 0) {
     while ($row = $resultAdres->fetch_assoc()) {
         $adresler[] = $row;
     }
+}
+
+// Sepetteki ürünleri al
+$sqlSepet = "SELECT sepetID, sepetUrunID, sepetUrunFiyat, sepetUrunMiktar FROM t_sepet WHERE sepetUyeID = $uyeID AND sepetGorunurluk = 1";
+$resultSepet = $baglan->query($sqlSepet);
+
+if ($resultSepet->num_rows > 0) {
+    // Toplam tutarı hesapla
+    $toplamTutar = 0;
+    $sepetIDList = []; // Sepet ID'lerini saklamak için bir dizi
+    while ($row = $resultSepet->fetch_assoc()) {
+        $toplamTutar += $row['sepetUrunFiyat'] * $row['sepetUrunMiktar'];
+        $sepetIDList[] = $row['sepetID']; // Sepet ID'sini diziye ekle
+    }
+
+    // Sepet ID'lerini virgülle ayrılmış bir stringe dönüştür
+    $sepetIDString = implode(',', $sepetIDList);
+
+    // Kullanıcıdan adres al
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $adresID = isset($_POST['adresID']) ? intval($_POST['adresID']) : null;
+        $yeniAdres = isset($_POST['yeniAdres']) ? $baglan->real_escape_string(trim($_POST['yeniAdres'])) : null;
+
+        // Eğer yeni bir adres girilmişse, bunu veri tabanına ekle
+        if (empty($adresID) && !empty($yeniAdres)) {
+            $sqlYeniAdres = "INSERT INTO t_adresler (adresUyeID, adresBilgisi) VALUES ($uyeID, '$yeniAdres')";
+            if ($baglan->query($sqlYeniAdres) === TRUE) {
+                $adresID = $baglan->insert_id; // Yeni eklenen adresin ID'sini al
+            } else {
+                echo "<script>alert('Adres kaydedilemedi: " . $baglan->error . "'); window.history.back();</script>";
+                exit;
+            }
+        }
+
+        // Eğer adresID hala boşsa hata göster
+        if (empty($adresID)) {
+            echo "<script>alert('Lütfen bir adres seçin veya yeni bir adres girin.'); window.history.back();</script>";
+            exit;
+        }
+
+        // Yeni sipariş oluştur
+        $sqlSiparis = "INSERT INTO t_siparis (siparisUyeID, siparisSepetID, siparisAdresID, siparisDurum, siparisOdemeDurum, siparisOdemeTarih) 
+                       VALUES ($uyeID, '$sepetIDString', $adresID, 0, 1, NOW())";
+        if ($baglan->query($sqlSiparis) === TRUE) {
+            $siparisID = $baglan->insert_id;
+
+            // Sepetteki ürünleri siparişle ilişkilendir
+            $sqlSepetGuncelle = "UPDATE t_sepet SET sepetGorunurluk = 0 WHERE sepetUyeID = $uyeID AND sepetGorunurluk = 1";
+            if ($baglan->query($sqlSepetGuncelle) === TRUE) {
+                echo "<script>alert('Ödeme başarılı! Siparişiniz oluşturuldu.'); window.location.href = 'profil.php#orders';</script>";
+            } else {
+                echo "<script>alert('Sepet güncellenemedi: " . $baglan->error . "'); window.history.back();</script>";
+            }
+        } else {
+            echo "<script>alert('Sipariş oluşturulamadı: " . $baglan->error . "'); window.history.back();</script>";
+        }
+    }
+} else {
+    echo "<script>alert('Sepetinizde ürün bulunmamaktadır.'); window.history.back();</script>";
 }
 ?>
 <!DOCTYPE html>
@@ -117,11 +166,7 @@ if ($resultAdres->num_rows > 0) {
     <?php include 'headerHesap.php'; ?>
     <div class="container">
         <h2>Ödeme Yap</h2>
-        <form action="odemeIsle.php" method="POST">
-            <!-- Sepet ID -->
-            <input type="hidden" name="sepetID" value="<?php echo $sepetID; ?>">
-            <?php echo "<script>console.log('Sepet ID: $sepetID');</script>"; ?>
-
+        <form action="odeme.php" method="POST">
             <!-- Adres Seçimi -->
             <div class="form-group">
                 <label for="adres">Adres Seçimi</label>
