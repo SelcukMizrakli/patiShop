@@ -490,8 +490,10 @@ include 'ayar.php';
 
         .carousel-item img {
             width: 100%;
-            height: 500px; /* Yükseklik sınırı */
-            object-fit: cover; /* Resmin taşmasını önler ve düzgün bir şekilde sığmasını sağlar */
+            height: 500px;
+            /* Yükseklik sınırı */
+            object-fit: cover;
+            /* Resmin taşmasını önler ve düzgün bir şekilde sığmasını sağlar */
             display: block;
         }
     </style>
@@ -546,15 +548,13 @@ include 'ayar.php';
             <div class="container">
                 <ul>
                     <?php
-                    $sql = "SELECT hayvanTurAdi, hayvanTurSlug FROM t_hayvanturleri";
-                    $result = $baglan->query($sql);
-
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            echo '<li><a href="kategori.php?tur=' . $row['hayvanTurSlug'] . '"><i class="fas fa-paw"></i> ' . $row['hayvanTurAdi'] . '</a></li>';
+                    $query = "SELECT * FROM t_kategori"; // 'kategoriler' tablosundan tüm kategorileri çek
+                    $result = mysqli_query($baglan, $query); // Veritabanı bağlantısı üzerinden sorguyu çalıştır
+                    if ($result && mysqli_num_rows($result) > 0) {
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            // kategoriID yerine kategoriSlug kullanarak SEO dostu URL
+                            echo '<li><a href="kategori.php?kategori=' . $row['kategoriSlug'] . '"><i class="fas fa-paw"></i> ' . htmlspecialchars($row['kategoriAdi']) . '</a></li>';
                         }
-                    } else {
-                        echo '<li>Kategori bulunamadı.</li>';
                     }
                     ?>
                 </ul>
@@ -584,12 +584,12 @@ include 'ayar.php';
                     LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID 
                     GROUP BY u.urunID 
                     LIMIT 5";
-            
+
             $result = $baglan->query($sql);
             $i = 0;
             while ($row = $result->fetch_assoc()) {
                 $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/patiShopLogo.png'; // Resim yoksa varsayılan resim
-                
+
                 echo '<div class="carousel-item ' . ($i === 0 ? 'active' : '') . '">';
                 echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
                 echo '<img src="' . $resimYolu . '" class="d-block w-100" alt="' . $row['urunAdi'] . '">';
@@ -635,7 +635,7 @@ include 'ayar.php';
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
                         $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/patiShopLogo.png';
-                        
+
                         echo '<div class="product-card">';
                         echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
                         echo '<img src="' . $resimYolu . '" alt="' . $row['urunAdi'] . '">';
@@ -698,7 +698,7 @@ include 'ayar.php';
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
                         $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/patiShopLogo.png';
-                        
+
                         echo '<div class="product-card">';
                         echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
                         echo '<img src="' . $resimYolu . '" alt="' . $row['urunAdi'] . '">';
@@ -756,7 +756,7 @@ include 'ayar.php';
             </div>
         </section>
 
-        
+
     </main>
 
     <!-- Footer -->

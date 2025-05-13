@@ -116,6 +116,16 @@ if ($kategoriSlug) {
         .add-to-cart:hover {
             background-color: #3e8e41;
         }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            color: #666;
+            font-size: 1.1em;
+        }
     </style>
 </head>
 
@@ -133,9 +143,9 @@ if ($kategoriSlug) {
 
         <div class="product-grid">
             <?php
-            if ($urunResult->num_rows > 0) {
+            if ($urunResult && $urunResult->num_rows > 0) {
                 while ($urun = $urunResult->fetch_assoc()) {
-                    $resimYolu = !empty($urun['resimYolu']) ? $urun['resimYolu'] : 'resim/default.jpg';
+                    $resimYolu = !empty($urun['resimYolu']) ? $urun['resimYolu'] : 'resim/patiShopLogo.png';
                     ?>
                     <div class="product-card">
                         <a href="urundetay.php?urunID=<?php echo $urun['urunID']; ?>">
@@ -150,7 +160,11 @@ if ($kategoriSlug) {
                     <?php
                 }
             } else {
-                echo '<p class="no-results">Ürün bulunamadı.</p>';
+                if ($arama) {
+                    echo '<p class="no-results">Aramanızla eşleşen ürün bulunamadı.</p>';
+                } else {
+                    echo '<p class="no-results">Bu kategoride henüz ürün bulunmamakta.</p>';
+                }
             }
             ?>
         </div>

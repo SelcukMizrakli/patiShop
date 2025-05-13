@@ -588,29 +588,36 @@ if (session_status() === PHP_SESSION_NONE) {
     <div id="carouselExampleIndicators" style="width: 50%; margin-left: 25%;" class="carousel slide" data-bs-ride="carousel">
         <div class="carousel-indicators">
             <?php
-            $sql = "SELECT urunID FROM t_urunler LIMIT 5"; // Carousel için 5 ürün sınırı
+            $sql = "SELECT DISTINCT u.urunID 
+                    FROM t_urunler u
+                    LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                    LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID 
+                    LIMIT 5";
             $result = $baglan->query($sql);
             $i = 0;
             while ($row = $result->fetch_assoc()) {
-                echo '<button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="' . $i . '" ' . ($i === 0 ? 'class="active" aria-current="true"' : '') . ' aria-label="Slide ' . ($i + 1) . '"></button>';
+                echo '<button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="' . $i . '" ' 
+                     . ($i === 0 ? 'class="active" aria-current="true"' : '') . ' aria-label="Slide ' . ($i + 1) . '"></button>';
                 $i++;
             }
             ?>
         </div>
         <div class="carousel-inner">
             <?php
-            $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler LIMIT 5"; // Carousel için 5 ürün sınırı
+            $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu
+                    FROM t_urunler u
+                    LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                    LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                    GROUP BY u.urunID 
+                    LIMIT 5";
             $result = $baglan->query($sql);
             $i = 0;
             while ($row = $result->fetch_assoc()) {
-                // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
-                $resimResult = $baglan->query($resimSql);
-                $resim = $resimResult->fetch_assoc();
-
+                $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/default.jpg';
+                
                 echo '<div class="carousel-item ' . ($i === 0 ? 'active' : '') . '">';
-                echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
-                echo '<img src="' . $resim['resimYolu'] . '" class="d-block w-100" alt="' . $row['urunAdi'] . '">';
+                echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
+                echo '<img src="' . $resimYolu . '" class="d-block w-100" alt="' . $row['urunAdi'] . '">';
                 echo '</a>';
                 echo '</div>';
                 $i++;
@@ -660,19 +667,21 @@ if (session_status() === PHP_SESSION_NONE) {
             <h2 class="section-title">Popüler Ürünler</h2>
             <div class="product-grid">
                 <?php
-                $sql = "SELECT urunID, urunAdi, urunFiyat, urunResimID FROM t_urunler LIMIT 4";
+                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu
+                        FROM t_urunler u
+                        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                        GROUP BY u.urunID 
+                        LIMIT 4";
                 $result = $baglan->query($sql);
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
-                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
-                        $resimResult = $baglan->query($resimSql);
-                        $resim = $resimResult->fetch_assoc();
-
+                        $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/default.jpg';
+                        
                         echo '<div class="product-card">';
-                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
-                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
+                        echo '<img src="' . $resimYolu . '" alt="' . $row['urunAdi'] . '">';
                         echo '<div class="content">';
                         echo '<h3>' . $row['urunAdi'] . '</h3>';
                         echo '<div class="price">' . number_format($row['urunFiyat'], 2) . ' TL</div>';
@@ -692,24 +701,23 @@ if (session_status() === PHP_SESSION_NONE) {
             <h2 class="section-title">İndirimli Ürünler</h2>
             <div class="product-grid">
                 <?php
-                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, u.urunResimID, k.kampanyaIndirimYuzdesi 
+                $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, r.resimYolu, k.kampanyaIndirimYuzdesi 
                         FROM t_urunler u
                         INNER JOIN t_kampanya k ON u.urunID = k.kampanyaID
+                        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                        GROUP BY u.urunID
                         LIMIT 4";
                 $result = $baglan->query($sql);
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
-                        // Resim yolunu almak için t_resimler tablosunu kullanıyoruz
-                        $resimSql = "SELECT resimYolu FROM t_resimler WHERE resimID = " . $row['urunResimID'];
-                        $resimResult = $baglan->query($resimSql);
-                        $resim = $resimResult->fetch_assoc();
-
+                        $resimYolu = !empty($row['resimYolu']) ? $row['resimYolu'] : 'resim/default.jpg';
                         $indirimliFiyat = $row['urunFiyat'] * (1 - $row['kampanyaIndirimYuzdesi'] / 100);
 
                         echo '<div class="product-card">';
-                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">'; // Ürün detay sayfasına yönlendirme
-                        echo '<img src="' . $resim['resimYolu'] . '" alt="' . $row['urunAdi'] . '">';
+                        echo '<a href="urundetay.php?urunID=' . $row['urunID'] . '">';
+                        echo '<img src="' . $resimYolu . '" alt="' . $row['urunAdi'] . '">';
                         echo '<div class="content">';
                         echo '<h3>' . $row['urunAdi'] . '</h3>';
                         echo '<div class="price">' . number_format($indirimliFiyat, 2) . ' TL <span style="text-decoration: line-through; color: #999; font-size: 14px;">' . number_format($row['urunFiyat'], 2) . ' TL</span></div>';

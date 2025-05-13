@@ -1,13 +1,76 @@
 <?php
 include 'ayar.php';
 
+if (isset($_GET['id'])) {
+    $kategoriID = (int)$_GET['id'];
+
+    $sql = "SELECT k.*, ht.hayvanTurAdi 
+            FROM t_kategori k
+            LEFT JOIN t_hayvanturleri ht ON k.kategoriHayvanTurID = ht.hayvanTurID
+            WHERE k.kategoriID = ?";
+
+    $stmt = $baglan->prepare($sql);
+    $stmt->bind_param("i", $kategoriID);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($row = $result->fetch_assoc()) {
+        header('Content-Type: application/json');
+        echo json_encode($row);
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Kategori bulunamadı']);
+    }
+    exit; // Önemli: Diğer HTML çıktısını engellemek için
+}
+
 // Ürün Silme
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $urunID = intval($_GET['delete']);
-    $baglan->query("DELETE FROM t_urunler WHERE urunID = $urunID");
-    $baglan->query("DELETE FROM t_stok WHERE stokUrunID = $urunID");
-    header("Location: adminpanel.php");
-    exit;
+
+    try {
+        // Transaction başlat
+        $baglan->begin_transaction();
+
+        // 1. Önce resim ilişkilerini sil
+        $baglan->query("DELETE FROM t_resimiliskiler WHERE resimIliskilerEklenenID = $urunID");
+
+        // 2. Ürün detaylarını silmeden önce stok ID'sini al
+        $stokIDResult = $baglan->query("SELECT urunDStokID FROM t_urundetay WHERE urunDurunID = $urunID");
+        $stokID = null;
+        if ($stokIDResult && $row = $stokIDResult->fetch_assoc()) {
+            $stokID = $row['urunDStokID'];
+        }
+
+        // 3. Önce ürün detayını sil (çünkü stok tablosuna referans veriyor)
+        $baglan->query("DELETE FROM t_urundetay WHERE urunDurunID = $urunID");
+
+        // 4. Şimdi stok kaydını silebiliriz
+        if ($stokID) {
+            $baglan->query("DELETE FROM t_stok WHERE stokID = $stokID");
+        }
+
+        // 5. Son olarak ana ürün kaydını sil
+        $baglan->query("DELETE FROM t_urunler WHERE urunID = $urunID");
+
+        // İşlemi onayla
+        $baglan->commit();
+
+        echo "<script>
+            alert('Ürün başarıyla silindi!');
+            window.location.href='adminpanel.php';
+        </script>";
+        exit;
+    } catch (Exception $e) {
+        // Hata durumunda değişiklikleri geri al
+        $baglan->rollback();
+
+        echo "<script>
+            alert('Hata oluştu: " . $e->getMessage() . "');
+            window.location.href='adminpanel.php';
+        </script>";
+        exit;
+    }
 }
 
 // Ürün Ekleme
@@ -75,17 +138,16 @@ if (isset($_POST['urunEkle'])) {
 
         // Tüm işlemler başarılı, değişiklikleri kaydet
         $baglan->commit();
-        
+
         echo "<script>
             alert('Ürün başarıyla eklendi!');
             window.location.href='adminpanel.php';
         </script>";
         exit;
-
     } catch (Exception $e) {
         // Hata durumunda değişiklikleri geri al
         $baglan->rollback();
-        
+
         echo "<script>
             alert('Hata oluştu: " . $e->getMessage() . "');
             window.location.href='adminpanel.php';
@@ -131,10 +193,20 @@ if (isset($_POST['yetkiGuncelle'])) {
 }
 
 if (isset($_POST['yeniKategoriEkle'])) {
-    $yeniKategori = $baglan->real_escape_string($_POST['yeniKategoriAdi']);
+    $kategoriAdi = $baglan->real_escape_string($_POST['yeniKategoriAdi']);
     $hayvanTurID = (int)$_POST['yeniKategoriHayvanTurID'];
-    // Ana kategori olarak ekle (kategoriParentID NULL)
-    $baglan->query("INSERT INTO t_kategori (kategoriAdi, kategoriHayvanTurID, kategoriParentID) VALUES ('$yeniKategori', $hayvanTurID, NULL)");
+
+    // kategoriSlug oluştur (Türkçe karakterleri değiştir ve boşlukları tire ile değiştir)
+    $kategoriSlug = str_replace(
+        ['ı', 'ğ', 'ü', 'ş', 'ö', 'ç', 'İ', 'Ğ', 'Ü', 'Ş', 'Ö', 'Ç', ' '],
+        ['i', 'g', 'u', 's', 'o', 'c', 'i', 'g', 'u', 's', 'o', 'c', '-'],
+        mb_strtolower($kategoriAdi, 'UTF-8')
+    );
+
+    // Ana kategori olarak ekle
+    $baglan->query("INSERT INTO t_kategori (kategoriAdi, kategoriSlug, kategoriAciklama, kategoriHayvanTurID, kategoriParentID) 
+                    VALUES ('$kategoriAdi', '$kategoriSlug', '$kategoriAdi', $hayvanTurID, NULL)");
+
     echo "<script>window.location.href='adminpanel.php';</script>";
     exit;
 }
@@ -142,6 +214,66 @@ if (isset($_POST['yeniTurEkle'])) {
     $yeniTur = $baglan->real_escape_string($_POST['yeniTurAdi']);
     $baglan->query("INSERT INTO t_hayvanturleri (hayvanTurAdi, hayvanTurSlug, hayvanTurOlusturmaTarih) VALUES ('$yeniTur', '$yeniTur', NOW())");
     echo "<script>window.location.href='adminpanel.php';</script>";
+    exit;
+}
+
+// Kategori güncelleme işlemi için PHP kodu (en üstteki işlem bloklarına ekleyin)
+if (isset($_POST['kategoriGuncelle'])) {
+    $kategoriID = (int)$_POST['kategoriID'];
+    $kategoriAdi = $baglan->real_escape_string($_POST['kategoriAdi']);
+    $kategoriAciklama = $baglan->real_escape_string($_POST['kategoriAciklama']);
+    $hayvanTurID = (int)$_POST['kategoriHayvanTurID'];
+
+    // Slug oluştur
+    $kategoriSlug = strtolower(
+        str_replace(
+            ['ı', 'ğ', 'ü', 'ş', 'ö', 'ç', 'İ', 'Ğ', 'Ü', 'Ş', 'Ö', 'Ç', ' ', 'I'],
+            ['i', 'g', 'u', 's', 'o', 'c', 'i', 'g', 'u', 's', 'o', 'c', '-', 'i'],
+            $kategoriAdi
+        )
+    );
+
+    // Resim yükleme işlemi
+    if (isset($_FILES['kategoriIkon']) && $_FILES['kategoriIkon']['error'] === UPLOAD_ERR_OK) {
+        $dosyaAdi = uniqid('kategori_') . '_' . basename($_FILES['kategoriIkon']['name']);
+        $hedefYol = 'resim/kategori/' . $dosyaAdi;
+
+        // Klasör yoksa oluştur
+        if (!file_exists('resim/kategori')) {
+            mkdir('resim/kategori', 0777, true);
+        }
+
+        if (move_uploaded_file($_FILES['kategoriIkon']['tmp_name'], $hedefYol)) {
+            // Resim başarıyla yüklendiyse, veritabanını güncelle
+            $sql = "UPDATE t_kategori SET 
+                    kategoriAdi = ?, 
+                    kategoriSlug = ?,
+                    kategoriAciklama = ?,
+                    kategoriHayvanTurID = ?,
+                    kategoriIkonUrl = ?
+                    WHERE kategoriID = ?";
+
+            $stmt = $baglan->prepare($sql);
+            $stmt->bind_param("sssisi", $kategoriAdi, $kategoriSlug, $kategoriAciklama, $hayvanTurID, $hedefYol, $kategoriID);
+        }
+    } else {
+        // Resim yüklenmediyse, diğer bilgileri güncelle
+        $sql = "UPDATE t_kategori SET 
+                kategoriAdi = ?, 
+                kategoriSlug = ?,
+                kategoriAciklama = ?,
+                kategoriHayvanTurID = ?
+                WHERE kategoriID = ?";
+
+        $stmt = $baglan->prepare($sql);
+        $stmt->bind_param("sssii", $kategoriAdi, $kategoriSlug, $kategoriAciklama, $hayvanTurID, $kategoriID);
+    }
+
+    if ($stmt->execute()) {
+        echo "<script>alert('Kategori başarıyla güncellendi!'); window.location.href='adminpanel.php';</script>";
+    } else {
+        echo "<script>alert('Hata oluştu!'); window.location.href='adminpanel.php';</script>";
+    }
     exit;
 }
 ?>
@@ -152,6 +284,11 @@ if (isset($_POST['yeniTurEkle'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PatiShop - Admin Paneli</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_green.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -255,7 +392,35 @@ if (isset($_POST['yeniTurEkle'])) {
             background-color: var(--primary-dark);
         }
 
+        .flatpickr-input {
+            background-color: white !important;
+        }
+
+        .flatpickr-calendar {
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .flatpickr-day.selected {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+
+        .flatpickr-day:hover {
+            background: var(--light-gray);
+        }
+
+        .flatpickr-current-month {
+            padding: 8px 0 0 0;
+            font-size: 115%;
+        }
+
+        .flatpickr-monthDropdown-months {
+            font-weight: 500;
+        }
+
         .card {
+            width: 100%;
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -264,7 +429,6 @@ if (isset($_POST['yeniTurEkle'])) {
         }
 
         .card-header {
-            padding: 15px 20px;
             background-color: #f1f1f1;
             border-bottom: 1px solid var(--border-color);
             font-weight: bold;
@@ -469,6 +633,25 @@ if (isset($_POST['yeniTurEkle'])) {
         .close:hover {
             color: red;
         }
+
+        .menu-item.active {
+            background-color: var(--light-gray);
+            border-left: 4px solid var(--primary);
+        }
+
+        .section {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
@@ -487,20 +670,20 @@ if (isset($_POST['yeniTurEkle'])) {
             </div>
 
             <!-- Sabit Menü Öğeleri -->
-            <a href="anasayfa.php" class="menu-item">
-                <i class="fa">🏠</i> Ana Sayfa
+            <a href="#dashboard" class="menu-item" onclick="showSection('dashboard')">
+                <i class="fa">🏠</i> Dashboard
             </a>
-            <a href="siparisler.php" class="menu-item">
+            <a href="#siparisler" class="menu-item" onclick="showSection('siparisler')">
                 <i class="fa">🛒</i> Siparişler
             </a>
-            <a href="kullanicilar.php" class="menu-item">
+            <a href="#kullanicilar" class="menu-item" onclick="showSection('kullanicilar')">
                 <i class="fa">👥</i> Kullanıcılar
             </a>
-            <a href="kampanyalar.php" class="menu-item">
-                <i class="fa">🔖</i> Kampanyalar
+            <a href="#urunler" class="menu-item" onclick="showSection('urunler')">
+                <i class="fa">📦</i> Ürünler
             </a>
-            <a href="ayarlar.php" class="menu-item">
-                <i class="fa">⚙️</i> Ayarlar
+            <a href="#kategoriler" class="menu-item" onclick="showSection('kategoriler')">
+                <i class="fa">🔖</i> Kategoriler
             </a>
             <a href="cikisYap.php" class="menu-item">
                 <i class="fa">🚪</i> Çıkış Yap
@@ -509,328 +692,131 @@ if (isset($_POST['yeniTurEkle'])) {
 
         <!-- İçerik Alanı -->
         <div class="content">
-            <div class="content-header">
-                <h2>Dashboard</h2>
-                <div>
-                    <button class="btn" onclick="openNewProductModal()">
-                        <i class="fa">➕</i> Yeni Ürün Ekle
-                    </button>
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section">
+                <div class="content-header">
+                    <h2>Dashboard</h2>
                 </div>
+                <!-- Dashboard içeriği -->
             </div>
 
-            <!-- Son Siparişler -->
-            <div class="card">
-                <div class="card-header">
-                    Son Siparişler
+            <!-- Siparişler Section -->
+            <div id="siparisler" class="section" style="display: none;">
+                <div class="content-header">
+                    <h2>Siparişler</h2>
                 </div>
-                <div class="card-body">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Sipariş No</th>
-                                <th>Müşteri</th>
-                                <th>Tarih</th>
-                                <th>Tutar</th>
-                                <th>Durum</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "SELECT s.siparisID, u.uyeAd, u.uyeSoyad, s.siparisOdemeTarih, s.siparisSepetID, s.siparisDurum
-                                    FROM t_siparis s
-                                    INNER JOIN t_uyeler u ON s.siparisUyeID = u.uyeID
-                                    ORDER BY s.siparisOdemeTarih DESC
-                                    LIMIT 5";
-                            $result = $baglan->query($sql);
-                            while ($row = $result->fetch_assoc()) {
-                                // SepetID'lerden toplam tutarı hesapla
-                                $sepetIDs = array_filter(explode(',', $row['siparisSepetID']));
-                                $toplamTutar = 0;
-                                if (!empty($sepetIDs)) {
-                                    $sepetIDString = implode(',', array_map('intval', $sepetIDs));
-                                    $sqlTutar = "SELECT SUM(sepetUrunFiyat * sepetUrunMiktar) as toplam FROM t_sepet WHERE sepetID IN ($sepetIDString)";
-                                    $resTutar = $baglan->query($sqlTutar);
-                                    if ($resTutar && $resTutar->num_rows > 0) {
-                                        $toplamTutar = $resTutar->fetch_assoc()['toplam'];
-                                    }
-                                }
-                                $durum = ($row['siparisDurum'] == 0) ? "Hazırlanıyor" : (($row['siparisDurum'] == 1) ? "Kargoya Verildi" : "Teslim Edildi");
-                                echo '<tr>';
-                                echo '<td>#ORD-' . $row['siparisID'] . '</td>';
-                                echo '<td>' . $row['uyeAd'] . ' ' . $row['uyeSoyad'] . '</td>';
-                                echo '<td>' . $row['siparisOdemeTarih'] . '</td>';
-                                echo '<td>₺' . number_format($toplamTutar, 2) . '</td>';
-                                echo '<td>' . $durum . '</td>';
-                                echo '<td><a href="siparisDetay.php?siparisID=' . $row['siparisID'] . '" class="btn btn-sm">Görüntüle</a></td>';
-                                echo '</tr>';
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>Tüm Siparişler</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="siparisArama" class="form-control"
+                                    placeholder="Sipariş No Ara..." style="width: 200px;"
+                                    onkeyup="siparisleriFiltrele()">
 
-            <!-- Ürün Yönetimi Tab Container -->
-            <div class="card">
-                <div class="card-header">
-                    Ürün Yönetimi
-                </div>
-                <div class="card-body">
-                    <div class="tab-container">
-                        <div class="tabs">
-                            <div class="tab active">Ürün Listesi</div>
-                            <div class="tab" onclick="openNewProductModal()">Yeni Ürün Ekle</div>
-                        </div>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="text" id="baslangicTarih" class="form-control datepicker"
+                                        placeholder="Başlangıç Tarihi" style="width: 150px;">
+                                    <span style="color: #666;">-</span>
+                                    <input type="text" id="bitisTarih" class="form-control datepicker"
+                                        placeholder="Bitiş Tarihi" style="width: 150px;">
+                                </div>
 
-                        <div class="tab-content">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Ürün Kodu</th>
-                                        <th>Ürün Adı</th>
-                                        <th>Kategori</th>
-                                        <th>Hayvan Türü</th>
-                                        <th>Stok</th>
-                                        <th>Fiyat</th>
-                                        <th>Açıklama</th>
-                                        <th>İşlemler</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, k.kategoriAdi, 
-               ht.hayvanTurAdi, s.stokMiktar, ud.urunDAciklama,
-               r.resimYolu
-        FROM t_urunler u
-        LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
-        LEFT JOIN t_urundetay ud ON ud.urunDurunID = u.urunID
-        LEFT JOIN t_hayvanturleri ht ON ud.urunDHayvanTurID = ht.hayvanTurID
-        LEFT JOIN t_stok s ON ud.urunDStokID = s.stokID
-        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
-        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
-        GROUP BY u.urunID";
-                                    $result = $baglan->query($sql);
-                                    while ($row = $result->fetch_assoc()) {
-                                        echo '<tr>';
-                                        echo '<td>PRD-' . $row['urunID'] . '</td>';
-                                        echo '<td>' . htmlspecialchars($row['urunAdi']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($row['kategoriAdi']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($row['hayvanTurAdi']) . '</td>';
-                                        echo '<td>' . $row['stokMiktar'] . '</td>';
-                                        echo '<td>₺' . number_format($row['urunFiyat'], 2) . '</td>';
-                                        echo '<td>' . htmlspecialchars($row['urunDAciklama']) . '</td>';
-                                        echo '<td>
-                                            <a href="adminpanel.php?edit=' . $row['urunID'] . '" class="btn btn-warning btn-sm">Düzenle</a>
-                                            <a href="adminpanel.php?delete=' . $row['urunID'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'Silmek istediğinize emin misiniz?\')">Sil</a>
-                                        </td>';
-                                        echo '</tr>';
-                                    }
-                                    ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-
-
-            <!-- Ürün Ekleme Modalı -->
-            <div id="newProductModal" class="modal" style="display: none;">
-                <div class="modal-content">
-                    <span class="close" onclick="closeNewProductModal()">&times;</span>
-                    <h2>Yeni Ürün Ekle</h2>
-                    <form method="post" enctype="multipart/form-data">
-                        <!-- Ürün alanları -->
-                        <div class="form-group">
-                            <label for="productName">Ürün Adı</label>
-                            <input type="text" id="productName" name="urunAdi" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="productCategory">Kategori</label>
-                            <select id="productCategory" name="urunKategoriID" class="form-control" required onchange="kategoriSecildi(this)">
-                                <?php
-                                $kategoriler = $baglan->query("SELECT * FROM t_kategori");
-                                while ($kat = $kategoriler->fetch_assoc()) {
-                                    echo '<option value="' . $kat['kategoriID'] . '">' . $kat['kategoriAdi'] . '</option>';
-                                }
-                                ?>
-                                <option value="yeniKategori">+ Yeni Kategori Ekle</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="productAnimal">Hayvan Türü</label>
-                            <select id="productAnimal" name="hayvanTurID" class="form-control" required onchange="turSecildi(this)">
-                                <?php
-                                $turler = $baglan->query("SELECT * FROM t_hayvanturleri");
-                                while ($tur = $turler->fetch_assoc()) {
-                                    echo '<option value="' . $tur['hayvanTurID'] . '">' . $tur['hayvanTurAdi'] . '</option>';
-                                }
-                                ?>
-                                <option value="yeniTur">+ Yeni Tür Ekle</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="productPrice">Fiyat (₺)</label>
-                            <input type="number" id="productPrice" name="urunFiyat" class="form-control" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="productStock">Stok Miktarı</label>
-                            <input type="number" id="productStock" name="stokMiktar" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="productDescription">Ürün Açıklaması</label>
-                            <textarea id="productDescription" name="urunAciklama" class="form-control"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="productImage">Ürün Görseli</label>
-                            <input type="file" id="productImage" name="urunResim[]" class="form-control" accept="image/*" multiple required>
-                        </div>
-                        <button type="submit" name="urunEkle" class="btn">Ürünü Kaydet</button>
-                    </form>
-
-                    <!-- Yeni Kategori Ekle Formu (form dışında!) -->
-                    <div id="yeniKategoriDiv" style="display:none; margin-top:8px;">
-                        <form method="post" style="display:flex;gap:8px;">
-                            <input type="text" name="yeniKategoriAdi" class="form-control" placeholder="Yeni kategori adı" required>
-                            <select name="yeniKategoriHayvanTurID" class="form-control" required>
-                                <option value="">Tür Seçiniz</option>
-                                <?php
-                                $turler = $baglan->query("SELECT * FROM t_hayvanturleri");
-                                while ($tur = $turler->fetch_assoc()) {
-                                    echo '<option value="' . $tur['hayvanTurID'] . '">' . $tur['hayvanTurAdi'] . '</option>';
-                                }
-                                ?>
-                            </select>
-                            <button type="submit" name="yeniKategoriEkle" class="btn btn-sm">Ekle</button>
-                        </form>
-                    </div>
-
-                    <!-- Yeni Tür Ekle Formu (form dışında!) -->
-                    <div id="yeniTurDiv" style="display:none; margin-top:8px;">
-                        <form method="post" style="display:flex;gap:8px;">
-                            <input type="text" name="yeniTurAdi" class="form-control" placeholder="Yeni tür adı" required>
-                            <button type="submit" name="yeniTurEkle" class="btn btn-sm">Ekle</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ürün Güncelleme Modal -->
-            <div id="updateProductModal" class="modal" style="display: none;">
-                <div class="modal-content">
-                    <span class="close" onclick="closeUpdateProductModal()">&times;</span>
-                    <h2>Ürün Bilgilerini Güncelle</h2>
-                    <form>
-                        <div class="form-group">
-                            <label for="updateProductName">Ürün Adı</label>
-                            <input type="text" id="updateProductName" class="form-control" placeholder="Ürün adını giriniz">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="updateProductCategory">Kategori</label>
-                            <input type="text" id="updateProductCategory" class="form-control" placeholder="Kategori arayın" onfocus="showAllCategoriesForUpdate()" oninput="filterCategoriesForUpdate()">
-                            <div id="dropdownCategoryUpdate" class="dropdown" style="margin-top: 10px; display: none; border: 1px solid var(--border-color); border-radius: 4px; background-color: white; max-height: 150px; overflow-y: auto;">
-                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Köpek Ürünleri')">Köpek Ürünleri</div>
-                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Kedi Ürünleri')">Kedi Ürünleri</div>
-                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Balık Ürünleri')">Balık Ürünleri</div>
-                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Kuş Ürünleri')">Kuş Ürünleri</div>
-                                <div class="dropdown-item" onclick="selectCategoryForUpdate('Hamster Ürünleri')">Hamster Ürünleri</div>
+                                <button class="btn btn-sm" onclick="filtreleriSifirla()"
+                                    style="display: flex; align-items: center; gap: 5px;">
+                                    <i class="fa">🔄</i> Sıfırla
+                                </button>
                             </div>
                         </div>
-                        <script>
-                            function showAllCategoriesForUpdate() {
-                                const dropdownList = document.getElementById('dropdownCategoryUpdate');
-                                const items = dropdownList.getElementsByClassName('dropdown-item');
-                                for (let i = 0; i < items.length; i++) {
-                                    items[i].style.display = 'block'; // Tüm öğeleri görünür yap
+                    </div>
+                    <div class="card-body">
+                        <table id="siparislerTable">
+                            <thead>
+                                <tr>
+                                    <th>Sipariş No</th>
+                                    <th>Müşteri</th>
+                                    <th>Tarih</th>
+                                    <th>Tutar</th>
+                                    <th>Durum</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $sql = "SELECT s.siparisID, u.uyeAd, u.uyeSoyad, s.siparisOdemeTarih, 
+                                        s.siparisSepetID, s.siparisDurum
+                                        FROM t_siparis s
+                                        INNER JOIN t_uyeler u ON s.siparisUyeID = u.uyeID
+                                        ORDER BY s.siparisOdemeTarih DESC";
+                                $result = $baglan->query($sql);
+                                while ($row = $result->fetch_assoc()) {
+                                    // SepetID'lerden toplam tutarı hesapla
+                                    $sepetIDs = array_filter(explode(',', $row['siparisSepetID']));
+                                    $toplamTutar = 0;
+                                    if (!empty($sepetIDs)) {
+                                        $sepetIDString = implode(',', array_map('intval', $sepetIDs));
+                                        $sqlTutar = "SELECT SUM(sepetUrunFiyat * sepetUrunMiktar) as toplam 
+                                                   FROM t_sepet WHERE sepetID IN ($sepetIDString)";
+                                        $resTutar = $baglan->query($sqlTutar);
+                                        if ($resTutar && $resTutar->num_rows > 0) {
+                                            $toplamTutar = $resTutar->fetch_assoc()['toplam'];
+                                        }
+                                    }
+                                    $durum = ($row['siparisDurum'] == 0) ? "Hazırlanıyor" : (($row['siparisDurum'] == 1) ? "Kargoya Verildi" : "Teslim Edildi");
+
+                                    echo '<tr data-siparis-no="ORD-' . $row['siparisID'] . '" 
+                                              data-tarih="' . $row['siparisOdemeTarih'] . '">';
+                                    echo '<td>#ORD-' . $row['siparisID'] . '</td>';
+                                    echo '<td>' . $row['uyeAd'] . ' ' . $row['uyeSoyad'] . '</td>';
+                                    echo '<td>' . $row['siparisOdemeTarih'] . '</td>';
+                                    echo '<td>₺' . number_format($toplamTutar, 2) . '</td>';
+                                    echo '<td>' . $durum . '</td>';
+                                    echo '<td>
+                                            <a href="siparisDetay.php?siparisID=' . $row['siparisID'] . '" 
+                                               class="btn btn-sm">Görüntüle</a>
+                                         </td>';
+                                    echo '</tr>';
                                 }
-                                dropdownList.style.display = 'block'; // Dropdown'u görünür yap
-                            }
-
-                            function filterCategoriesForUpdate() {
-                                const input = document.getElementById('updateProductCategory').value.toLowerCase();
-                                const dropdownList = document.getElementById('dropdownCategoryUpdate');
-                                const items = dropdownList.getElementsByClassName('dropdown-item');
-                                let hasVisibleItem = false;
-
-                                for (let i = 0; i < items.length; i++) {
-                                    const itemText = items[i].textContent.toLowerCase();
-                                    const isVisible = itemText.includes(input);
-                                    items[i].style.display = isVisible ? 'block' : 'none';
-                                    if (isVisible) hasVisibleItem = true;
-                                }
-
-                                // Dropdown görünürlüğünü ayarla
-                                dropdownList.style.display = hasVisibleItem || input === '' ? 'block' : 'none';
-                            }
-
-                            function selectCategoryForUpdate(category) {
-                                const input = document.getElementById('updateProductCategory');
-                                input.value = category;
-                                document.getElementById('dropdownCategoryUpdate').style.display = 'none';
-                            }
-
-                            // Dropdown dışında bir yere tıklanınca dropdown'u kapat
-                            document.addEventListener('click', function(event) {
-                                const dropdown = document.getElementById('dropdownCategoryUpdate');
-                                const input = document.getElementById('updateProductCategory');
-                                if (!dropdown.contains(event.target) && event.target !== input) {
-                                    dropdown.style.display = 'none';
-                                }
-                            });
-                        </script>
-
-                        <div class="form-group">
-                            <label for="updateProductPrice">Fiyat (₺)</label>
-                            <input type="number" id="updateProductPrice" class="form-control" placeholder="0.00">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="updateProductStock">Stok Miktarı</label>
-                            <input type="number" id="updateProductStock" class="form-control" placeholder="0">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="updateProductDescription">Ürün Açıklaması</label>
-                            <textarea id="updateProductDescription" class="form-control" placeholder="Ürün açıklamasını giriniz"></textarea>
-                        </div>
-
-                        <button type="submit" class="btn">Güncelle</button>
-                    </form>
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- Kullanıcı Yetkileri Yönetimi Card'ı -->
-            <div class="card">
-                <div class="card-header">
-                    Kullanıcı Yetkileri
+            <!-- Kullanıcılar Section -->
+            <div id="kullanicilar" class="section" style="display: none;">
+                <div class="content-header">
+                    <h2>Kullanıcı Yönetimi</h2>
                 </div>
-                <div class="card-body">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Kullanıcı ID</th>
-                                <th>Ad Soyad</th>
-                                <th>E-posta</th>
-                                <th>Rol</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "SELECT uyeID, uyeAd, uyeSoyad, uyeMail, uyeYetki FROM t_uyeler";
-                            $result = $baglan->query($sql);
-                            while ($row = $result->fetch_assoc()) {
-                                $rol = ($row['uyeYetki'] == 2) ? "Admin" : (($row['uyeYetki'] == 1) ? "Çalışan" : "Müşteri");
-                                echo '<tr>';
-                                echo '<td>USR-' . $row['uyeID'] . '</td>';
-                                echo '<td>' . $row['uyeAd'] . ' ' . $row['uyeSoyad'] . '</td>';
-                                echo '<td>' . $row['uyeMail'] . '</td>';
-                                echo '<td>' . $rol . '</td>';
-                                echo '<td>
+                <!-- Kullanıcı Yetkileri Yönetimi Card'ı -->
+                <div class="card">
+                    <div class="card-header">
+                        Kullanıcı Yetkileri
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Kullanıcı ID</th>
+                                    <th>Ad Soyad</th>
+                                    <th>E-posta</th>
+                                    <th>Rol</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $sql = "SELECT uyeID, uyeAd, uyeSoyad, uyeMail, uyeYetki FROM t_uyeler";
+                                $result = $baglan->query($sql);
+                                while ($row = $result->fetch_assoc()) {
+                                    $rol = ($row['uyeYetki'] == 2) ? "Admin" : (($row['uyeYetki'] == 1) ? "Çalışan" : "Müşteri");
+                                    echo '<tr>';
+                                    echo '<td>USR-' . $row['uyeID'] . '</td>';
+                                    echo '<td>' . $row['uyeAd'] . ' ' . $row['uyeSoyad'] . '</td>';
+                                    echo '<td>' . $row['uyeMail'] . '</td>';
+                                    echo '<td>' . $rol . '</td>';
+                                    echo '<td>
                                     <form method="post" style="display:inline;">
                                         <input type="hidden" name="uyeID" value="' . $row['uyeID'] . '">
                                         <select name="yeniYetki">
@@ -841,11 +827,343 @@ if (isset($_POST['yeniTurEkle'])) {
                                         <button type="submit" name="yetkiGuncelle" class="btn btn-sm btn-warning">Kaydet</button>
                                     </form>
                                 </td>';
-                                echo '</tr>';
-                            }
-                            ?>
-                        </tbody>
-                    </table>
+                                    echo '</tr>';
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ürünler Section -->
+            <div id="urunler" class="section" style="display: none;">
+                <div class="content-header">
+                    <h2>Ürün Yönetimi</h2>
+                    <div>
+                        <button class="btn" onclick="openNewProductModal()">
+                            <i class="fa">➕</i> Yeni Ürün Ekle
+                        </button>
+                    </div>
+                </div>
+                <!-- Ürün Yönetimi Tab Container -->
+                <div class="card">
+                    <div class="card-header">
+                        Ürün Yönetimi
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-container">
+                            <div class="tabs">
+                                <div class="tab active">Ürün Listesi</div>
+                                <div class="tab" onclick="openNewProductModal()">Yeni Ürün Ekle</div>
+                            </div>
+
+                            <div class="tab-content">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Ürün Kodu</th>
+                                            <th>Ürün Adı</th>
+                                            <th>Kategori</th>
+                                            <th>Hayvan Türü</th>
+                                            <th>Stok</th>
+                                            <th>Fiyat</th>
+                                            <th>Açıklama</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, k.kategoriAdi, 
+               ht.hayvanTurAdi, s.stokMiktar, ud.urunDAciklama,
+               r.resimYolu
+        FROM t_urunler u
+        LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
+        LEFT JOIN t_urundetay ud ON ud.urunDurunID = u.urunID
+        LEFT JOIN t_hayvanturleri ht ON ud.urunDHayvanTurID = ht.hayvanTurID
+        LEFT JOIN t_stok s ON ud.urunDStokID = s.stokID
+        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+        GROUP BY u.urunID";
+                                        $result = $baglan->query($sql);
+                                        while ($row = $result->fetch_assoc()) {
+                                            echo '<tr>';
+                                            echo '<td>PRD-' . $row['urunID'] . '</td>';
+                                            echo '<td>' . htmlspecialchars($row['urunAdi'] ?? '') . '</td>';
+                                            echo '<td>' . htmlspecialchars($row['kategoriAdi'] ?? '') . '</td>';
+                                            echo '<td>' . htmlspecialchars($row['hayvanTurAdi'] ?? '') . '</td>';
+                                            echo '<td>' . ($row['stokMiktar'] ?? 0) . '</td>';
+                                            echo '<td>₺' . number_format($row['urunFiyat'] ?? 0, 2) . '</td>';
+                                            echo '<td>' . htmlspecialchars($row['urunDAciklama'] ?? '') . '</td>';
+                                            echo '<td>
+        <a href="adminpanel.php?edit=' . $row['urunID'] . '" class="btn btn-warning btn-sm">Düzenle</a>
+        <a href="adminpanel.php?delete=' . $row['urunID'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'Silmek istediğinize emin misiniz?\')">Sil</a>
+    </td>';
+                                            echo '</tr>';
+                                        }
+                                        ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Ürün Ekleme Modalı -->
+                <div id="newProductModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeNewProductModal()">&times;</span>
+                        <h2>Yeni Ürün Ekle</h2>
+                        <form method="post" enctype="multipart/form-data">
+                            <!-- Ürün alanları -->
+                            <div class="form-group">
+                                <label for="productName">Ürün Adı</label>
+                                <input type="text" id="productName" name="urunAdi" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productCategory">Kategori</label>
+                                <select id="productCategory" name="urunKategoriID" class="form-control" required onchange="kategoriSecildi(this)">
+                                    <?php
+                                    $kategoriler = $baglan->query("SELECT * FROM t_kategori");
+                                    while ($kat = $kategoriler->fetch_assoc()) {
+                                        echo '<option value="' . $kat['kategoriID'] . '">' . $kat['kategoriAdi'] . '</option>';
+                                    }
+                                    ?>
+                                    <option value="yeniKategori">+ Yeni Kategori Ekle</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="productAnimal">Hayvan Türü</label>
+                                <select id="productAnimal" name="hayvanTurID" class="form-control" required onchange="turSecildi(this)">
+                                    <?php
+                                    $turler = $baglan->query("SELECT * FROM t_hayvanturleri");
+                                    while ($tur = $turler->fetch_assoc()) {
+                                        echo '<option value="' . $tur['hayvanTurID'] . '">' . $tur['hayvanTurAdi'] . '</option>';
+                                    }
+                                    ?>
+                                    <option value="yeniTur">+ Yeni Tür Ekle</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="productPrice">Fiyat (₺)</label>
+                                <input type="number" id="productPrice" name="urunFiyat" class="form-control" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productStock">Stok Miktarı</label>
+                                <input type="number" id="productStock" name="stokMiktar" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productDescription">Ürün Açıklaması</label>
+                                <textarea id="productDescription" name="urunAciklama" class="form-control"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="productImage">Ürün Görseli</label>
+                                <input type="file" id="productImage" name="urunResim[]" class="form-control" accept="image/*" multiple required>
+                            </div>
+                            <button type="submit" name="urunEkle" class="btn">Ürünü Kaydet</button>
+                        </form>
+
+                        <!-- Yeni Kategori Ekle Formu (form dışında!) -->
+                        <div id="yeniKategoriDiv" style="display:none; margin-top:8px;">
+                            <form method="post" style="display:flex;gap:8px;">
+                                <input type="text" name="yeniKategoriAdi" class="form-control" placeholder="Yeni kategori adı" required>
+                                <select name="yeniKategoriHayvanTurID" class="form-control" required>
+                                    <option value="">Tür Seçiniz</option>
+                                    <?php
+                                    $turler = $baglan->query("SELECT * FROM t_hayvanturleri");
+                                    while ($tur = $turler->fetch_assoc()) {
+                                        echo '<option value="' . $tur['hayvanTurID'] . '">' . $tur['hayvanTurAdi'] . '</option>';
+                                    }
+                                    ?>
+                                </select>
+                                <button type="submit" name="yeniKategoriEkle" class="btn btn-sm">Ekle</button>
+                            </form>
+                        </div>
+
+                        <!-- Yeni Tür Ekle Formu (form dışında!) -->
+                        <div id="yeniTurDiv" style="display:none; margin-top:8px;">
+                            <form method="post" style="display:flex;gap:8px;">
+                                <input type="text" name="yeniTurAdi" class="form-control" placeholder="Yeni tür adı" required>
+                                <button type="submit" name="yeniTurEkle" class="btn btn-sm">Ekle</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ürün Güncelleme Modal -->
+                <div id="updateProductModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeUpdateProductModal()">&times;</span>
+                        <h2>Ürün Bilgilerini Güncelle</h2>
+                        <form>
+                            <div class="form-group">
+                                <label for="updateProductName">Ürün Adı</label>
+                                <input type="text" id="updateProductName" class="form-control" placeholder="Ürün adını giriniz">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="updateProductCategory">Kategori</label>
+                                <input type="text" id="updateProductCategory" class="form-control" placeholder="Kategori arayın" onfocus="showAllCategoriesForUpdate()" oninput="filterCategoriesForUpdate()">
+                                <div id="dropdownCategoryUpdate" class="dropdown" style="margin-top: 10px; display: none; border: 1px solid var(--border-color); border-radius: 4px; background-color: white; max-height: 150px; overflow-y: auto;">
+                                    <div class="dropdown-item" onclick="selectCategoryForUpdate('Köpek Ürünleri')">Köpek Ürünleri</div>
+                                    <div class="dropdown-item" onclick="selectCategoryForUpdate('Kedi Ürünleri')">Kedi Ürünleri</div>
+                                    <div class="dropdown-item" onclick="selectCategoryForUpdate('Balık Ürünleri')">Balık Ürünleri</div>
+                                    <div class="dropdown-item" onclick="selectCategoryForUpdate('Kuş Ürünleri')">Kuş Ürünleri</div>
+                                    <div class="dropdown-item" onclick="selectCategoryForUpdate('Hamster Ürünleri')">Hamster Ürünleri</div>
+                                </div>
+                            </div>
+                            <script>
+                                function showAllCategoriesForUpdate() {
+                                    const dropdownList = document.getElementById('dropdownCategoryUpdate');
+                                    const items = dropdownList.getElementsByClassName('dropdown-item');
+                                    for (let i = 0; i < items.length; i++) {
+                                        items[i].style.display = 'block'; // Tüm öğeleri görünür yap
+                                    }
+                                    dropdownList.style.display = 'block'; // Dropdown'u görünür yap
+                                }
+
+                                function filterCategoriesForUpdate() {
+                                    const input = document.getElementById('updateProductCategory').value.toLowerCase();
+                                    const dropdownList = document.getElementById('dropdownCategoryUpdate');
+                                    const items = dropdownList.getElementsByClassName('dropdown-item');
+                                    let hasVisibleItem = false;
+
+                                    for (let i = 0; i < items.length; i++) {
+                                        const itemText = items[i].textContent.toLowerCase();
+                                        const isVisible = itemText.includes(input);
+                                        items[i].style.display = isVisible ? 'block' : 'none';
+                                        if (isVisible) hasVisibleItem = true;
+                                    }
+
+                                    // Dropdown görünürlüğünü ayarla
+                                    dropdownList.style.display = hasVisibleItem || input === '' ? 'block' : 'none';
+                                }
+
+                                function selectCategoryForUpdate(category) {
+                                    const input = document.getElementById('updateProductCategory');
+                                    input.value = category;
+                                    document.getElementById('dropdownCategoryUpdate').style.display = 'none';
+                                }
+
+                                // Dropdown dışında bir yere tıklanınca dropdown'u kapat
+                                document.addEventListener('click', function(event) {
+                                    const dropdown = document.getElementById('dropdownCategoryUpdate');
+                                    const input = document.getElementById('updateProductCategory');
+                                    if (!dropdown.contains(event.target) && event.target !== input) {
+                                        dropdown.style.display = 'none';
+                                    }
+                                });
+                            </script>
+
+                            <div class="form-group">
+                                <label for="updateProductPrice">Fiyat (₺)</label>
+                                <input type="number" id="updateProductPrice" class="form-control" placeholder="0.00">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="updateProductStock">Stok Miktarı</label>
+                                <input type="number" id="updateProductStock" class="form-control" placeholder="0">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="updateProductDescription">Ürün Açıklaması</label>
+                                <textarea id="updateProductDescription" class="form-control" placeholder="Ürün açıklamasını giriniz"></textarea>
+                            </div>
+
+                            <button type="submit" class="btn">Güncelle</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kategoriler Section -->
+            <div id="kategoriler" class="section" style="display: none;">
+                <div class="content-header">
+                    <h2>Kategori Yönetimi</h2>
+                </div>
+                <!-- Kategori Yönetimi Card'ı -->
+                <div class="card">
+                    <div class="card-header">
+                        Kategori Yönetimi
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>İkon</th>
+                                    <th>Kategori Adı</th>
+                                    <th>Slug</th>
+                                    <th>Hayvan Türü</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $sql = "SELECT k.*, ht.hayvanTurAdi 
+                                    FROM t_kategori k
+                                    LEFT JOIN t_hayvanturleri ht ON k.kategoriHayvanTurID = ht.hayvanTurID";
+                                $result = $baglan->query($sql);
+                                while ($row = $result->fetch_assoc()) {
+                                    echo '<tr>';
+                                    echo '<td>CAT-' . $row['kategoriID'] . '</td>';
+                                    echo '<td><img src="' . ($row['kategoriIkonUrl'] ?? 'resim/default-category.png') . '" style="width: 40px; height: 40px; object-fit: cover;"></td>';
+                                    echo '<td>' . htmlspecialchars($row['kategoriAdi']) . '</td>';
+                                    echo '<td>' . htmlspecialchars($row['kategoriSlug']) . '</td>';
+                                    echo '<td>' . htmlspecialchars($row['hayvanTurAdi']) . '</td>';
+                                    echo '<td>
+                                        <button onclick="openKategoriDuzenleModal(' . $row['kategoriID'] . ')" class="btn btn-warning btn-sm">Düzenle</button>
+                                      </td>';
+                                    echo '</tr>';
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Kategori Düzenleme Modal -->
+                <div id="kategoriDuzenleModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeKategoriDuzenleModal()">&times;</span>
+                        <h2>Kategori Düzenle</h2>
+                        <form method="post" enctype="multipart/form-data">
+                            <input type="hidden" id="kategoriID" name="kategoriID">
+
+                            <div class="form-group">
+                                <label for="kategoriAdi">Kategori Adı</label>
+                                <input type="text" id="kategoriAdi" name="kategoriAdi" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="kategoriAciklama">Açıklama</label>
+                                <textarea id="kategoriAciklama" name="kategoriAciklama" class="form-control"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="kategoriHayvanTurID">Hayvan Türü</label>
+                                <select id="kategoriHayvanTurID" name="kategoriHayvanTurID" class="form-control" required>
+                                    <?php
+                                    $turler = $baglan->query("SELECT * FROM t_hayvanturleri");
+                                    while ($tur = $turler->fetch_assoc()) {
+                                        echo '<option value="' . $tur['hayvanTurID'] . '">' . $tur['hayvanTurAdi'] . '</option>';
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="kategoriIkon">Kategori İkonu</label>
+                                <input type="file" id="kategoriIkon" name="kategoriIkon" class="form-control" accept="image/*">
+                                <small class="form-text text-muted">Mevcut ikonu değiştirmek istemiyorsanız boş bırakın.</small>
+                            </div>
+
+                            <button type="submit" name="kategoriGuncelle" class="btn">Güncelle</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -944,6 +1262,165 @@ if (isset($_POST['yeniTurEkle'])) {
             document.getElementById('yeniTurDiv').style.display = 'none';
         }
     }
+
+    // Kategori düzenleme fonksiyonlarını güncelleyelim
+    function openKategoriDuzenleModal(kategoriID) {
+        fetch('adminpanel.php?id=' + kategoriID)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                // Form alanlarını doldur
+                document.getElementById('kategoriID').value = data.kategoriID;
+                document.getElementById('kategoriAdi').value = data.kategoriAdi;
+                document.getElementById('kategoriAciklama').value = data.kategoriAciklama || '';
+                document.getElementById('kategoriHayvanTurID').value = data.kategoriHayvanTurID;
+
+                // Modalı göster
+                document.getElementById('kategoriDuzenleModal').style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                alert('Kategori bilgileri alınırken bir hata oluştu.');
+            });
+    }
+
+    function closeKategoriDuzenleModal() {
+        const modal = document.getElementById('kategoriDuzenleModal');
+        modal.style.display = 'none';
+    }
+
+    // Sayfa dışı tıklamalarda modalı kapatma
+    window.onclick = function(event) {
+        const modal = document.getElementById('kategoriDuzenleModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Sayfa yüklendiğinde hash'e göre ilgili bölümü göster
+    window.onload = function() {
+        const hash = window.location.hash || '#dashboard';
+        showSection(hash.replace('#', ''));
+    }
+
+    // Bölüm gösterme fonksiyonu
+    function showSection(sectionId) {
+        // Tüm bölümleri gizle
+        const sections = document.querySelectorAll('.content > div');
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+
+        // Tüm menü öğelerinden active sınıfını kaldır
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // İlgili bölümü göster
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.style.display = 'block';
+        }
+
+        // İlgili menü öğesini aktif yap
+        const menuItem = document.querySelector(`.menu-item[href="#${sectionId}"]`);
+        if (menuItem) {
+            menuItem.classList.add('active');
+        }
+
+        // URL'yi güncelle
+        window.location.hash = sectionId;
+    }
+
+    // Siparişleri filtreleme fonksiyonu
+    function siparisleriFiltrele() {
+        const siparisNo = document.getElementById('siparisArama').value.toLowerCase();
+        const baslangicTarih = document.getElementById('baslangicTarih').value;
+        const bitisTarih = document.getElementById('bitisTarih').value;
+
+        const rows = document.querySelectorAll('#siparislerTable tbody tr');
+
+        rows.forEach(row => {
+            const rowSiparisNo = row.getAttribute('data-siparis-no').toLowerCase();
+            const rowTarih = row.getAttribute('data-tarih');
+
+            let siparisNoMatch = rowSiparisNo.includes(siparisNo);
+            let tarihMatch = true;
+
+            if (baslangicTarih && bitisTarih) {
+                tarihMatch = rowTarih >= baslangicTarih && rowTarih <= bitisTarih;
+            }
+
+            if (siparisNoMatch && tarihMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+    // Filtreleri sıfırlama fonksiyonu
+    function filtreleriSifirla() {
+        document.getElementById('siparisArama').value = '';
+        const baslangicPicker = document.querySelector("#baslangicTarih")._flatpickr;
+        const bitisPicker = document.querySelector("#bitisTarih")._flatpickr;
+        
+        baslangicPicker.clear();
+        bitisPicker.clear();
+        
+        const rows = document.querySelectorAll('#siparislerTable tbody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+    }
+
+    // Tarihleri karşılaştırmak için yardımcı fonksiyon
+    function formatDate(date) {
+        return date.split('T')[0];
+    }
+
+    // Flatpickr tarih seçici ayarları
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateConfig = {
+            locale: 'tr',
+            dateFormat: 'd.m.Y',
+            enableTime: false,
+            altInput: true,
+            altFormat: 'j F Y',
+            monthSelectorType: 'static',
+            disableMobile: true,
+            onChange: function() {
+                siparisleriFiltrele();
+            }
+        };
+
+        // Başlangıç tarihi seçici
+        const baslangicPicker = flatpickr("#baslangicTarih", {
+            ...dateConfig,
+            onClose: function(selectedDates) {
+                // Bitiş tarihinin minimum değerini ayarla
+                bitisPicker.set('minDate', selectedDates[0]);
+            }
+        });
+
+        // Bitiş tarihi seçici
+        const bitisPicker = flatpickr("#bitisTarih", {
+            ...dateConfig,
+            onClose: function(selectedDates) {
+                // Başlangıç tarihinin maksimum değerini ayarla
+                baslangicPicker.set('maxDate', selectedDates[0]);
+            }
+        });
+    });
 </script>
 
 </html>

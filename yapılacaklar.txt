@@ -76,3 +76,10 @@ t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin)
         
 
         siparişlerim kısmındaki bug düzeltilecek, güncel siparişim kısmında görünecek
+
+** Yapılacaklar: admin paneli: 
+                        dashboard'da admin sayfası tanıtılacak sadece
+                        kullanıcılar, ürünler, kategoriler sayfalarında isime göre filtreleme yapılabilecek
+                giriş yaptıktan sonra yetki seviyesine göre header sayfasına
+                        profilim, favoriler kısımlarına ek olarak yönetim sayfası ve sepetim sayfası kısmı eklenecek
+                sipariş detay sayfasındaki header kaldırılacak
