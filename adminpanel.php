@@ -1342,25 +1342,36 @@ if (isset($_POST['kategoriGuncelle'])) {
         window.location.hash = sectionId;
     }
 
-    // Siparişleri filtreleme fonksiyonu
+    // Siparişleri filtreleme fonksiyonunu güncelle
     function siparisleriFiltrele() {
         const siparisNo = document.getElementById('siparisArama').value.toLowerCase();
         const baslangicTarih = document.getElementById('baslangicTarih').value;
         const bitisTarih = document.getElementById('bitisTarih').value;
-
+        
         const rows = document.querySelectorAll('#siparislerTable tbody tr');
-
+        
         rows.forEach(row => {
             const rowSiparisNo = row.getAttribute('data-siparis-no').toLowerCase();
             const rowTarih = row.getAttribute('data-tarih');
-
+            
             let siparisNoMatch = rowSiparisNo.includes(siparisNo);
             let tarihMatch = true;
-
+            
             if (baslangicTarih && bitisTarih) {
-                tarihMatch = rowTarih >= baslangicTarih && rowTarih <= bitisTarih;
+                // Tarihleri Date objelerine çevir
+                const rowDate = new Date(rowTarih);
+                const baslangicDate = flatpickr.parseDate(baslangicTarih, "d.m.Y");
+                const bitisDate = flatpickr.parseDate(bitisTarih, "d.m.Y");
+                
+                // Saat bilgisini sıfırla
+                rowDate.setHours(0, 0, 0, 0);
+                baslangicDate.setHours(0, 0, 0, 0);
+                bitisDate.setHours(0, 0, 0, 0);
+                
+                // Tarih aralığını kontrol et
+                tarihMatch = rowDate >= baslangicDate && rowDate <= bitisDate;
             }
-
+            
             if (siparisNoMatch && tarihMatch) {
                 row.style.display = '';
             } else {
@@ -1368,27 +1379,8 @@ if (isset($_POST['kategoriGuncelle'])) {
             }
         });
     }
-    // Filtreleri sıfırlama fonksiyonu
-    function filtreleriSifirla() {
-        document.getElementById('siparisArama').value = '';
-        const baslangicPicker = document.querySelector("#baslangicTarih")._flatpickr;
-        const bitisPicker = document.querySelector("#bitisTarih")._flatpickr;
-        
-        baslangicPicker.clear();
-        bitisPicker.clear();
-        
-        const rows = document.querySelectorAll('#siparislerTable tbody tr');
-        rows.forEach(row => {
-            row.style.display = '';
-        });
-    }
 
-    // Tarihleri karşılaştırmak için yardımcı fonksiyon
-    function formatDate(date) {
-        return date.split('T')[0];
-    }
-
-    // Flatpickr tarih seçici ayarları
+    // Flatpickr tarih seçici ayarlarını güncelle
     document.addEventListener('DOMContentLoaded', function() {
         const dateConfig = {
             locale: 'tr',
@@ -1407,8 +1399,11 @@ if (isset($_POST['kategoriGuncelle'])) {
         const baslangicPicker = flatpickr("#baslangicTarih", {
             ...dateConfig,
             onClose: function(selectedDates) {
-                // Bitiş tarihinin minimum değerini ayarla
-                bitisPicker.set('minDate', selectedDates[0]);
+                if (selectedDates[0]) {
+                    // Bitiş tarihinin minimum değerini ayarla
+                    bitisPicker.set('minDate', selectedDates[0]);
+                    siparisleriFiltrele();
+                }
             }
         });
 
@@ -1416,11 +1411,37 @@ if (isset($_POST['kategoriGuncelle'])) {
         const bitisPicker = flatpickr("#bitisTarih", {
             ...dateConfig,
             onClose: function(selectedDates) {
-                // Başlangıç tarihinin maksimum değerini ayarla
-                baslangicPicker.set('maxDate', selectedDates[0]);
+                if (selectedDates[0]) {
+                    // Başlangıç tarihinin maksimum değerini ayarla
+                    baslangicPicker.set('maxDate', selectedDates[0]);
+                    siparisleriFiltrele();
+                }
             }
         });
     });
+
+    // Filtreleri sıfırlama fonksiyonunu güncelle
+    function filtreleriSifirla() {
+        document.getElementById('siparisArama').value = '';
+        
+        // Flatpickr instance'larını al
+        const baslangicPicker = document.querySelector("#baslangicTarih")._flatpickr;
+        const bitisPicker = document.querySelector("#bitisTarih")._flatpickr;
+        
+        // Tarihleri temizle
+        baslangicPicker.clear();
+        bitisPicker.clear();
+        
+        // Min/max kısıtlamalarını kaldır
+        baslangicPicker.set('maxDate', null);
+        bitisPicker.set('minDate', null);
+        
+        // Tüm satırları göster
+        const rows = document.querySelectorAll('#siparislerTable tbody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+    }
 </script>
 
 </html>
