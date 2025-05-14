@@ -387,6 +387,41 @@ include('ayar.php');
         margin: 0 auto;
         padding: 0 15px;
     }
+
+    .patiDropdownDivider {
+        height: 1px;
+        background-color: #ddd;
+        margin: 8px 0;
+    }
+
+    .patiSepetBadge {
+        background-color: #ff4444;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+        margin-left: 5px;
+    }
+
+    .patiDropdownContent a {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        color: #333;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+
+    .patiDropdownContent a i {
+        width: 20px;
+        margin-right: 10px;
+        text-align: center;
+    }
+
+    .patiDropdownContent a:hover {
+        background-color: #f5f5f5;
+        color: #4CAF50;
+    }
 </style>
 
 <body>
@@ -411,15 +446,40 @@ include('ayar.php');
                                     <i class="fas fa-user"></i> Hesabım
                                 </button>
                                 <div class="patiDropdownContent">
+                                    <!-- Temel kullanıcı menü öğeleri -->
                                     <a href="profil.php#profile"><i class="fas fa-user-circle"></i> Profil</a>
                                     <a href="profil.php#favorites"><i class="fas fa-heart"></i> Favorilerim</a>
                                     <a href="profil.php#orders"><i class="fas fa-box"></i> Siparişlerim</a>
+                                    
+                                    <!-- Sepet linki -->
+                                    <?php if (isset($_SESSION['uyeYetki']) && $_SESSION['uyeYetki'] >= 0): ?>
+                                        <a href="profil.php#cart"><i class="fas fa-shopping-cart"></i> Sepetim 
+                                            <?php 
+                                            // Sepetteki ürün sayısını göster
+                                            $uyeID = $_SESSION['uyeID'];
+                                            $sepetSorgu = "SELECT COUNT(*) as urunSayisi FROM t_sepet WHERE sepetUyeID = $uyeID AND sepetGorunurluk = 1";
+                                            $sepetSonuc = $baglan->query($sepetSorgu);
+                                            $sepetSayi = $sepetSonuc->fetch_assoc()['urunSayisi'];
+                                            if($sepetSayi > 0) {
+                                                echo "<span class='patiSepetBadge'>$sepetSayi</span>";
+                                            }
+                                            ?>
+                                        </a>
+                                    <?php endif; ?>
+
+                                    <!-- Admin paneli linki -->
+                                    <?php if (isset($_SESSION['uyeYetki']) && $_SESSION['uyeYetki'] >= 2): ?>
+                                        <div class="patiDropdownDivider"></div>
+                                        <a href="adminpanel.php"><i class="fas fa-cog"></i> Yönetim Paneli</a>
+                                    <?php endif; ?>
+
+                                    <div class="patiDropdownDivider"></div>
                                     <a href="cikisYap.php"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
                                 </div>
                             </div>
                         <?php else: ?>
                             <a href="index.php?showLoginModal=true" class="patiUserProfile">
-                                <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                               <i class="fas fa-user"></i> Giriş Yap
                             </a>
                         <?php endif; ?>
                     </div>

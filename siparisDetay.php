@@ -136,7 +136,6 @@ $toplamTutar = 0;
 </head>
 
 <body>
-    <?php include 'headerHesap.php'; ?>
     <div class="container">
         <div class="order-header">
             <h2>Sipariş #<?php echo $siparis['siparisID']; ?></h2>

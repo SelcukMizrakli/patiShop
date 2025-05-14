@@ -472,6 +472,25 @@ if (isset($_POST['kategoriGuncelle'])) {
             background-color: #dc3545;
         }
 
+        /* Arama kutusu stilleri */
+        #kullaniciArama {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        #kullaniciArama:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Tablo satır hover efekti */
+        #kullanicilarTable tbody tr:hover {
+            background-color: var(--light-gray);
+        }
+
         .stats-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -652,6 +671,34 @@ if (isset($_POST['kategoriGuncelle'])) {
                 opacity: 1;
             }
         }
+
+        /* Ürün filtreleme stilleri */
+        .form-control {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        select.form-control {
+            cursor: pointer;
+            background-color: white;
+        }
+
+        select.form-control:hover {
+            border-color: var(--primary);
+        }
+
+        /* Tablo satır hover efekti */
+        #urunlerTable tbody tr:hover {
+            background-color: var(--light-gray);
+        }
     </style>
 </head>
 
@@ -670,6 +717,9 @@ if (isset($_POST['kategoriGuncelle'])) {
             </div>
 
             <!-- Sabit Menü Öğeleri -->
+            <a href="anasayfa.php" class="menu-item">
+                <i class="fa">🏘️</i> Anasayfa
+            </a>
             <a href="#dashboard" class="menu-item" onclick="showSection('dashboard')">
                 <i class="fa">🏠</i> Dashboard
             </a>
@@ -697,7 +747,61 @@ if (isset($_POST['kategoriGuncelle'])) {
                 <div class="content-header">
                     <h2>Dashboard</h2>
                 </div>
-                <!-- Dashboard içeriği -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Admin Paneli Kullanım Kılavuzu</h3>
+                    </div>
+                    <div class="card-body">
+                        <div style="line-height: 1.6;">
+                            <h4 style="color: #4CAF50; margin-bottom: 10px;">Hoş Geldiniz!</h4>
+                            <p style="margin-bottom: 20px;">Bu yönetim panelinde aşağıdaki işlemleri gerçekleştirebilirsiniz:</p>
+
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: #4CAF50;">🛒 Siparişler</strong>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Tüm siparişleri görüntüleme</li>
+                                    <li>Sipariş numarasına göre arama yapma</li>
+                                    <li>Tarih aralığına göre filtreleme</li>
+                                    <li>Sipariş detaylarını inceleme</li>
+                                </ul>
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: #4CAF50;">👥 Kullanıcı Yönetimi</strong>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Kullanıcı listesini görüntüleme</li>
+                                    <li>Kullanıcı yetkilerini güncelleme</li>
+                                    <li>Müşteri, çalışan ve admin rollerini atama</li>
+                                </ul>
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: #4CAF50;">📦 Ürün Yönetimi</strong>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Yeni ürün ekleme</li>
+                                    <li>Mevcut ürünleri düzenleme</li>
+                                    <li>Ürün silme</li>
+                                    <li>Stok takibi yapma</li>
+                                    <li>Ürün fiyatlarını güncelleme</li>
+                                </ul>
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: #4CAF50;">🔖 Kategori Yönetimi</strong>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Yeni kategori ekleme</li>
+                                    <li>Kategori düzenleme</li>
+                                    <li>Kategori ikonlarını güncelleme</li>
+                                    <li>Hayvan türlerine göre kategorileri yönetme</li>
+                                </ul>
+                            </div>
+
+                            <p style="margin-top: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
+                                <strong>Not:</strong> Tüm değişiklikler anında sisteme yansıyacaktır. Lütfen işlemlerinizi dikkatli bir şekilde gerçekleştiriniz.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Siparişler Section -->
@@ -792,10 +896,22 @@ if (isset($_POST['kategoriGuncelle'])) {
                 <!-- Kullanıcı Yetkileri Yönetimi Card'ı -->
                 <div class="card">
                     <div class="card-header">
-                        Kullanıcı Yetkileri
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>Kullanıcı Yetkileri</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="kullaniciArama"
+                                    class="form-control"
+                                    placeholder="ID veya isim ile ara..."
+                                    style="width: 250px;"
+                                    onkeyup="kullanicilariFiltrele()">
+                                <button class="btn btn-sm" onclick="filtreleriSifirlaKullanici()">
+                                    <i class="fa">🔄</i> Sıfırla
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <table>
+                        <table id="kullanicilarTable">
                             <thead>
                                 <tr>
                                     <th>Kullanıcı ID</th>
@@ -811,22 +927,23 @@ if (isset($_POST['kategoriGuncelle'])) {
                                 $result = $baglan->query($sql);
                                 while ($row = $result->fetch_assoc()) {
                                     $rol = ($row['uyeYetki'] == 2) ? "Admin" : (($row['uyeYetki'] == 1) ? "Çalışan" : "Müşteri");
-                                    echo '<tr>';
+                                    echo '<tr data-user-id="USR-' . $row['uyeID'] . '" 
+                                             data-user-name="' . htmlspecialchars($row['uyeAd'] . ' ' . $row['uyeSoyad']) . '">';
                                     echo '<td>USR-' . $row['uyeID'] . '</td>';
-                                    echo '<td>' . $row['uyeAd'] . ' ' . $row['uyeSoyad'] . '</td>';
-                                    echo '<td>' . $row['uyeMail'] . '</td>';
+                                    echo '<td>' . htmlspecialchars($row['uyeAd'] . ' ' . $row['uyeSoyad']) . '</td>';
+                                    echo '<td>' . htmlspecialchars($row['uyeMail']) . '</td>';
                                     echo '<td>' . $rol . '</td>';
                                     echo '<td>
-                                    <form method="post" style="display:inline;">
-                                        <input type="hidden" name="uyeID" value="' . $row['uyeID'] . '">
-                                        <select name="yeniYetki">
-                                            <option value="0"' . ($row['uyeYetki'] == 0 ? ' selected' : '') . '>Müşteri</option>
-                                            <option value="1"' . ($row['uyeYetki'] == 1 ? ' selected' : '') . '>Çalışan</option>
-                                            <option value="2"' . ($row['uyeYetki'] == 2 ? ' selected' : '') . '>Admin</option>
-                                        </select>
-                                        <button type="submit" name="yetkiGuncelle" class="btn btn-sm btn-warning">Kaydet</button>
-                                    </form>
-                                </td>';
+                                        <form method="post" style="display:inline;">
+                                            <input type="hidden" name="uyeID" value="' . $row['uyeID'] . '">
+                                            <select name="yeniYetki" class="form-control" style="width: auto; display: inline-block; margin-right: 10px;">
+                                                <option value="0"' . ($row['uyeYetki'] == 0 ? ' selected' : '') . '>Müşteri</option>
+                                                <option value="1"' . ($row['uyeYetki'] == 1 ? ' selected' : '') . '>Çalışan</option>
+                                                <option value="2"' . ($row['uyeYetki'] == 2 ? ' selected' : '') . '>Admin</option>
+                                            </select>
+                                            <button type="submit" name="yetkiGuncelle" class="btn btn-sm btn-warning">Kaydet</button>
+                                        </form>
+                                    </td>';
                                     echo '</tr>';
                                 }
                                 ?>
@@ -849,69 +966,111 @@ if (isset($_POST['kategoriGuncelle'])) {
                 <!-- Ürün Yönetimi Tab Container -->
                 <div class="card">
                     <div class="card-header">
-                        Ürün Yönetimi
-                    </div>
-                    <div class="card-body">
-                        <div class="tab-container">
-                            <div class="tabs">
-                                <div class="tab active">Ürün Listesi</div>
-                                <div class="tab" onclick="openNewProductModal()">Yeni Ürün Ekle</div>
-                            </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>Ürün Yönetimi</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="urunArama"
+                                    class="form-control"
+                                    placeholder="Ürün adı ara..."
+                                    style="width: 200px;"
+                                    onkeyup="urunleriFiltrele()">
 
-                            <div class="tab-content">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Ürün Kodu</th>
-                                            <th>Ürün Adı</th>
-                                            <th>Kategori</th>
-                                            <th>Hayvan Türü</th>
-                                            <th>Stok</th>
-                                            <th>Fiyat</th>
-                                            <th>Açıklama</th>
-                                            <th>İşlemler</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php
-                                        $sql = "SELECT u.urunID, u.urunAdi, u.urunFiyat, k.kategoriAdi, 
-               ht.hayvanTurAdi, s.stokMiktar, ud.urunDAciklama,
-               r.resimYolu
-        FROM t_urunler u
-        LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
-        LEFT JOIN t_urundetay ud ON ud.urunDurunID = u.urunID
-        LEFT JOIN t_hayvanturleri ht ON ud.urunDHayvanTurID = ht.hayvanTurID
-        LEFT JOIN t_stok s ON ud.urunDStokID = s.stokID
-        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
-        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
-        GROUP BY u.urunID";
-                                        $result = $baglan->query($sql);
-                                        while ($row = $result->fetch_assoc()) {
-                                            echo '<tr>';
-                                            echo '<td>PRD-' . $row['urunID'] . '</td>';
-                                            echo '<td>' . htmlspecialchars($row['urunAdi'] ?? '') . '</td>';
-                                            echo '<td>' . htmlspecialchars($row['kategoriAdi'] ?? '') . '</td>';
-                                            echo '<td>' . htmlspecialchars($row['hayvanTurAdi'] ?? '') . '</td>';
-                                            echo '<td>' . ($row['stokMiktar'] ?? 0) . '</td>';
-                                            echo '<td>₺' . number_format($row['urunFiyat'] ?? 0, 2) . '</td>';
-                                            echo '<td>' . htmlspecialchars($row['urunDAciklama'] ?? '') . '</td>';
-                                            echo '<td>
-        <a href="adminpanel.php?edit=' . $row['urunID'] . '" class="btn btn-warning btn-sm">Düzenle</a>
-        <a href="adminpanel.php?delete=' . $row['urunID'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'Silmek istediğinize emin misiniz?\')">Sil</a>
-    </td>';
-                                            echo '</tr>';
-                                        }
-                                        ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                <select id="kategoriFiltre"
+                                    class="form-control"
+                                    style="width: 150px;"
+                                    onchange="urunleriFiltrele()">
+                                    <option value="">Tüm Kategoriler</option>
+                                    <?php
+                                    $kategoriler = $baglan->query("SELECT * FROM t_kategori WHERE kategoriDurum = 1");
+                                    while ($kat = $kategoriler->fetch_assoc()) {
+                                        echo '<option value="' . htmlspecialchars($kat['kategoriAdi']) . '">'
+                                            . htmlspecialchars($kat['kategoriAdi']) . '</option>';
+                                    }
+                                    ?>
+                                </select>
 
+                                <select id="turFiltre"
+                                    class="form-control"
+                                    style="width: 150px;"
+                                    onchange="urunleriFiltrele()">
+                                    <option value="">Tüm Türler</option>
+                                    <?php
+                                    $turler = $baglan->query("SELECT * FROM t_hayvanturleri");
+                                    while ($tur = $turler->fetch_assoc()) {
+                                        echo '<option value="' . htmlspecialchars($tur['hayvanTurAdi']) . '">'
+                                            . htmlspecialchars($tur['hayvanTurAdi']) . '</option>';
+                                    }
+                                    ?>
+                                </select>
+
+                                <button class="btn btn-sm" onclick="filtreleriSifirlaUrun()">
+                                    <i class="fa">🔄</i> Sıfırla
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    <div class="card-body">
+                        <table id="urunlerTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Resim</th>
+                                    <th>Ürün Adı</th>
+                                    <th>Kategori</th>
+                                    <th>Hayvan Türü</th>
+                                    <th>Fiyat</th>
+                                    <th>Stok</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $sql = "SELECT u.*, k.kategoriAdi, ht.hayvanTurAdi, ud.urunDAciklama, s.stokMiktar, 
+                                               r.resimYolu
+                                        FROM t_urunler u
+                                        LEFT JOIN t_kategori k ON u.urunKategoriID = k.kategoriID
+                                        LEFT JOIN t_urundetay ud ON u.urunID = ud.urunDurunID
+                                        LEFT JOIN t_hayvanturleri ht ON ud.urunDHayvanTurID = ht.hayvanTurID
+                                        LEFT JOIN t_stok s ON ud.urunDStokID = s.stokID
+                                        LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                                        LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                                        GROUP BY u.urunID";
+
+                                $result = $baglan->query($sql);
+                                if ($result && $result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo '<tr data-urun-adi="' . htmlspecialchars($row['urunAdi']) . '" 
+                                                 data-kategori="' . htmlspecialchars($row['kategoriAdi'] ?? '') . '"
+                                                 data-tur="' . htmlspecialchars($row['hayvanTurAdi'] ?? '') . '">';
+                                        echo '<td>PRD-' . $row['urunID'] . '</td>';
+                                        echo '<td><img src="' . ($row['resimYolu'] ?? 'resim/default.jpg') . '" style="width: 50px; height: 50px; object-fit: cover;"></td>';
+                                        echo '<td>' . htmlspecialchars($row['urunAdi']) . '</td>';
+                                        echo '<td>' . htmlspecialchars($row['kategoriAdi'] ?? 'Belirtilmemiş') . '</td>';
+                                        echo '<td>' . htmlspecialchars($row['hayvanTurAdi'] ?? 'Belirtilmemiş') . '</td>';
+                                        echo '<td>₺' . number_format($row['urunFiyat'], 2) . '</td>';
+                                        echo '<td>' . ($row['stokMiktar'] ?? 0) . '</td>';
+                                        echo '<td class="action-btns">
+                                                <button onclick="openUpdateProductModal({
+                                                    id: ' . $row['urunID'] . ',
+                                                    name: \'' . addslashes($row['urunAdi']) . '\',
+                                                    category: \'' . addslashes($row['kategoriAdi'] ?? '') . '\',
+                                                    price: ' . $row['urunFiyat'] . ',
+                                                    stock: ' . ($row['stokMiktar'] ?? 0) . ',
+                                                    description: \'' . addslashes($row['urunDAciklama'] ?? '') . '\'
+                                                })" class="btn btn-sm btn-warning">Düzenle</button>
+                                                <a href="?delete=' . $row['urunID'] . '" class="btn btn-sm btn-danger" 
+                                                   onclick="return confirm(\'Bu ürünü silmek istediğinizden emin misiniz?\')">Sil</a>
+                                            </td>';
+                                        echo '</tr>';
+                                    }
+                                } else {
+                                    echo '<tr><td colspan="8" style="text-align: center;">Henüz ürün eklenmemiş.</td></tr>';
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-
-
-
                 <!-- Ürün Ekleme Modalı -->
                 <div id="newProductModal" class="modal" style="display: none;">
                     <div class="modal-content">
@@ -1084,13 +1243,48 @@ if (isset($_POST['kategoriGuncelle'])) {
                 <div class="content-header">
                     <h2>Kategori Yönetimi</h2>
                 </div>
-                <!-- Kategori Yönetimi Card'ı -->
+                <!-- Kategori Yönetimi Card'ını güncelle -->
                 <div class="card">
                     <div class="card-header">
-                        Kategori Yönetimi
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>Kategori Yönetimi</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text"
+                                    id="kategoriAdiArama"
+                                    class="form-control"
+                                    placeholder="Kategori adı ara..."
+                                    style="width: 200px;"
+                                    onkeyup="kategorileriFiltrele()">
+
+                                <input type="text"
+                                    id="slugArama"
+                                    class="form-control"
+                                    placeholder="Slug ara..."
+                                    style="width: 200px;"
+                                    onkeyup="kategorileriFiltrele()">
+
+                                <select id="hayvanTuruFiltre"
+                                    class="form-control"
+                                    style="width: 150px;"
+                                    onchange="kategorileriFiltrele()">
+                                    <option value="">Tüm Türler</option>
+                                    <?php
+                                    $turler = $baglan->query("SELECT * FROM t_hayvanturleri");
+                                    while ($tur = $turler->fetch_assoc()) {
+                                        echo '<option value="' . htmlspecialchars($tur['hayvanTurAdi']) . '">'
+                                            . htmlspecialchars($tur['hayvanTurAdi']) . '</option>';
+                                    }
+                                    ?>
+                                </select>
+
+                                <button class="btn btn-sm" onclick="filtreleriSifirlaKategori()">
+                                    <i class="fa">🔄</i> Sıfırla
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <table>
+                        <table id="kategorilerTable">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -1108,7 +1302,9 @@ if (isset($_POST['kategoriGuncelle'])) {
                                     LEFT JOIN t_hayvanturleri ht ON k.kategoriHayvanTurID = ht.hayvanTurID";
                                 $result = $baglan->query($sql);
                                 while ($row = $result->fetch_assoc()) {
-                                    echo '<tr>';
+                                    echo '<tr data-kategori-adi="' . htmlspecialchars($row['kategoriAdi']) . '" 
+                                             data-kategori-slug="' . htmlspecialchars($row['kategoriSlug']) . '"
+                                             data-hayvan-turu="' . htmlspecialchars($row['hayvanTurAdi'] ?? '') . '">';
                                     echo '<td>CAT-' . $row['kategoriID'] . '</td>';
                                     echo '<td><img src="' . ($row['kategoriIkonUrl'] ?? 'resim/default-category.png') . '" style="width: 40px; height: 40px; object-fit: cover;"></td>';
                                     echo '<td>' . htmlspecialchars($row['kategoriAdi']) . '</td>';
@@ -1347,31 +1543,31 @@ if (isset($_POST['kategoriGuncelle'])) {
         const siparisNo = document.getElementById('siparisArama').value.toLowerCase();
         const baslangicTarih = document.getElementById('baslangicTarih').value;
         const bitisTarih = document.getElementById('bitisTarih').value;
-        
+
         const rows = document.querySelectorAll('#siparislerTable tbody tr');
-        
+
         rows.forEach(row => {
             const rowSiparisNo = row.getAttribute('data-siparis-no').toLowerCase();
             const rowTarih = row.getAttribute('data-tarih');
-            
+
             let siparisNoMatch = rowSiparisNo.includes(siparisNo);
             let tarihMatch = true;
-            
+
             if (baslangicTarih && bitisTarih) {
                 // Tarihleri Date objelerine çevir
                 const rowDate = new Date(rowTarih);
                 const baslangicDate = flatpickr.parseDate(baslangicTarih, "d.m.Y");
                 const bitisDate = flatpickr.parseDate(bitisTarih, "d.m.Y");
-                
+
                 // Saat bilgisini sıfırla
                 rowDate.setHours(0, 0, 0, 0);
                 baslangicDate.setHours(0, 0, 0, 0);
                 bitisDate.setHours(0, 0, 0, 0);
-                
+
                 // Tarih aralığını kontrol et
                 tarihMatch = rowDate >= baslangicDate && rowDate <= bitisDate;
             }
-            
+
             if (siparisNoMatch && tarihMatch) {
                 row.style.display = '';
             } else {
@@ -1423,25 +1619,136 @@ if (isset($_POST['kategoriGuncelle'])) {
     // Filtreleri sıfırlama fonksiyonunu güncelle
     function filtreleriSifirla() {
         document.getElementById('siparisArama').value = '';
-        
+
         // Flatpickr instance'larını al
         const baslangicPicker = document.querySelector("#baslangicTarih")._flatpickr;
         const bitisPicker = document.querySelector("#bitisTarih")._flatpickr;
-        
+
         // Tarihleri temizle
         baslangicPicker.clear();
         bitisPicker.clear();
-        
+
         // Min/max kısıtlamalarını kaldır
         baslangicPicker.set('maxDate', null);
         bitisPicker.set('minDate', null);
-        
+
         // Tüm satırları göster
         const rows = document.querySelectorAll('#siparislerTable tbody tr');
         rows.forEach(row => {
             row.style.display = '';
         });
     }
+
+    // Kullanıcıları filtreleme fonksiyonu
+    function kullanicilariFiltrele() {
+        const aramaMetni = document.getElementById('kullaniciArama').value.toLowerCase();
+        const satirlar = document.querySelectorAll('#kullanicilarTable tbody tr');
+
+        satirlar.forEach(satir => {
+            const kullaniciID = satir.getAttribute('data-user-id').toLowerCase();
+            const kullaniciAdi = satir.getAttribute('data-user-name').toLowerCase();
+
+            if (kullaniciID.includes(aramaMetni) || kullaniciAdi.includes(aramaMetni)) {
+                satir.style.display = '';
+            } else {
+                satir.style.display = 'none';
+            }
+        });
+    }
+
+    // Kullanıcı filtresini sıfırlama fonksiyonu
+    function filtreleriSifirlaKullanici() {
+        document.getElementById('kullaniciArama').value = '';
+        const satirlar = document.querySelectorAll('#kullanicilarTable tbody tr');
+        satirlar.forEach(satir => {
+            satir.style.display = '';
+        });
+    }
+
+    // Ürünleri filtreleme fonksiyonu
+    function urunleriFiltrele() {
+        const aramaMetni = document.getElementById('urunArama').value.toLowerCase();
+        const secilenKategori = document.getElementById('kategoriFiltre').value.toLowerCase();
+        const secilenTur = document.getElementById('turFiltre').value.toLowerCase();
+
+        const satirlar = document.querySelectorAll('#urunlerTable tbody tr');
+
+        satirlar.forEach(satir => {
+            const urunAdi = satir.getAttribute('data-urun-adi').toLowerCase();
+            const kategori = satir.getAttribute('data-kategori').toLowerCase();
+            const tur = satir.getAttribute('data-tur').toLowerCase();
+
+            const isimMatch = urunAdi.includes(aramaMetni);
+            const kategoriMatch = secilenKategori === '' || kategori === secilenKategori;
+            const turMatch = secilenTur === '' || tur === secilenTur;
+
+            if (isimMatch && kategoriMatch && turMatch) {
+                satir.style.display = '';
+            } else {
+                satir.style.display = 'none';
+            }
+        });
+    }
+
+    // Ürün filtrelerini sıfırlama fonksiyonu
+    function filtreleriSifirlaUrun() {
+        document.getElementById('urunArama').value = '';
+        document.getElementById('kategoriFiltre').value = '';
+        document.getElementById('turFiltre').value = '';
+
+        const satirlar = document.querySelectorAll('#urunlerTable tbody tr');
+        satirlar.forEach(satir => {
+            satir.style.display = '';
+        });
+    }
+
+    // Select elementleri için stil
+    document.addEventListener('DOMContentLoaded', function() {
+        const selects = document.querySelectorAll('.form-control');
+        selects.forEach(select => {
+            select.style.padding = '8px';
+            select.style.borderRadius = '4px';
+            select.style.border = '1px solid var(--border-color)';
+        });
+    });
+
+    // Kategorileri filtreleme fonksiyonu
+    function kategorileriFiltrele() {
+        const kategoriAdi = document.getElementById('kategoriAdiArama').value.toLowerCase();
+        const slug = document.getElementById('slugArama').value.toLowerCase();
+        const hayvanTuru = document.getElementById('hayvanTuruFiltre').value.toLowerCase();
+
+        const satirlar = document.querySelectorAll('#kategorilerTable tbody tr');
+
+        satirlar.forEach(satir => {
+            const rowKategoriAdi = satir.getAttribute('data-kategori-adi').toLowerCase();
+            const rowSlug = satir.getAttribute('data-kategori-slug').toLowerCase();
+            const rowHayvanTuru = (satir.getAttribute('data-hayvan-turu') || '').toLowerCase();
+
+            const kategoriMatch = rowKategoriAdi.includes(kategoriAdi);
+            const slugMatch = rowSlug.includes(slug);
+            const turMatch = hayvanTuru === '' || rowHayvanTuru === hayvanTuru;
+
+            if (kategoriMatch && slugMatch && turMatch) {
+                satir.style.display = '';
+            } else {
+                satir.style.display = 'none';
+            }
+        });
+    }
+
+    // Kategori filtrelerini sıfırlama fonksiyonu
+    function filtreleriSifirlaKategori() {
+        document.getElementById('kategoriAdiArama').value = '';
+        document.getElementById('slugArama').value = '';
+        document.getElementById('hayvanTuruFiltre').value = '';
+
+        const satirlar = document.querySelectorAll('#kategorilerTable tbody tr');
+        satirlar.forEach(satir => {
+            satir.style.display = '';
+        });
+    }
+</script>
 </script>
 
 </html>

@@ -1,45 +1,3 @@
-**  üye profil sayfası olacak
-        favoriler
-        profili düzenleme seçenekleri olacak
-        adreslerim bilgisi olacak
-** sepet sayfası eklenecek ve ürünleri sepete ekleme kodu eklenecek
-** arama çubuğu çalışacak
-** filtreleme yapılacak
-
-** kullanıcı sayfasına da eklenecek bu tüm özellikler
-
-// anasayfaya eklenecekler: index.php sayfasında yer alan ürün listeleme buraya entegre edilecek. Profil butonları çalışacak.
-
-// profil.php sayfası menüler düzenlenecek, footer eklenecek ve 
-** bölümler arası geçişler diğer sayfadaki kodlara entegre edilecek
-
-** veri tabanı bağlantısı yapıldıktan sonra urundetay.php sayfası dahil tüm sayfalardaki gerekli kısımlar tekrar ayarlanacak.
-
-* admin paneli bölümler arası geçiş ayarlanacak.
-
-*** TÜM SİTELERDEKİ BİLGİLER VERİ TABANINA GÖRE TEKRAR GÜNCELLENECEK !!!!
-
-Veri tabanı tabloları ve sütunları:
-        t_adresler: adresID, adresUyeID, adresBilgisi.
-        t_favoriler: favoriID, favoriUyeID, favoriUrunID, favoriOlusturmaTarih, favoriGuncellenmeTarih, favoriSilmeTarih
-        t_hayvanturleri: hayvanTurID, hayvanTurAdi, hayvanTurSlug, hayvanTurOlusturmaTarih, hayvanTurGuncellemeTarih
-        t_kampanya: kampanyaID, kampanyaBaslik, kampanyaAciklama, kampanyaIndirimYuzdesi, kampanyaBaslangicTarih, kampanyaBitisTarih, kampanyaGuncellenmeTarih, kampanyaSilinmeTarih
-        t_kargo: kargoID, kargoSiparisID, kargoNo, kargoDurumu, kargoFirmaAdi, kargoyaVerilmeTarihi, kargoTeslimatTarihi
-        t_kategori: kategoriID, kategoriAdi, kategoriHayvanTurID, kategoriAciklama, kategoriParentID, kategoriDurum (0 aktif degil, 1 aktif), kategoriSlug, kategoriIkonUrl, kategoriKayitTarih, kategoriGuncellemeTarih
-        t_resimiliskiler: resimIliskilerID, resimIliskilerResimID, resimIliskilerEklenenID
-        t_resimler: resimID, resimYolu, resimBaslik, resimEklenmeTarih
-        t_sepet: sepetID, sepetUrunID, sepetUyeID, sepetUrunFiyat, sepetUrunMiktar, sepetOlusturmaTarih, sepetGuncellemeTarih, sepetGorunurluk (0 gizli, 1 gorunur)
-        t_siparis: siparisID, siparisUyeID, siparisSepetID, siparisDurum (0 hazirlaniyor, 1 kargoya verildi, 2 teslim edildi), siparisOdemeDurum (0 basarisiz, 1 basarili), siparisOdemeTarih, siparisAdresID
-        t_stok: stokID, stokUrunID, stokMiktar, stokGirisTarih, stokCikisTarih
-        t_urundetay: urunDID, urunDurunID, urunDHayvanTurID, urunDKampanyaID, urunDAciklama, urunDStokID
-        t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunKayitTarih, urunGuncellemeTarih
-        t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin), uyeMail, uyeSifre, uyeAktiflikDurumu, uyeKayitTarih, uyeGuncellemeTarih, uyeSilmeTarih
-
-** admin panelindeki menüler için detay sayfaları oluşturulacak
-** urundetay, profil, kayitOl, adminpanel (işlemler aktif olacak), (arama bölümleri aktif olacak)
-
-
-aşağıdaki veri tabanı tablo ve sütunlarını kullanarak bu sayfayı veri tabanına uyumlu hale getirir misin? veri tabanı bağlantısı ayar.php'de $baglan adıyla yapıldı 
 Veri tabanı tabloları ve sütunları:
 t_adresler: adresID, adresUyeID, adresBilgisi.
 t_favoriler: favoriID, favoriUyeID, favoriUrunID, favoriOlusturmaTarih, favoriGuncellenmeTarih, favoriSilmeTarih
@@ -55,31 +13,3 @@ t_stok: stokID, stokUrunID, stokMiktar, stokGirisTarih, stokCikisTarih
 t_urundetay: urunDID, urunDurunID, urunDHayvanTurID, urunDKampanyaID, urunDAciklama, urunDStokID
 t_urunler: urunID, urunAdi, urunFiyat, urunKategoriID, urunKayitTarih, urunGuncellemeTarih
 t_uyeler: uyeID, uyeAd, uyeSoyad, uyeTelNo, uyeYetki (0 uye, 1 calisan, 2 admin), uyeMail, uyeSifre, uyeAktiflikDurumu, uyeKayitTarih, uyeGuncellemeTarih, uyeSilmeTarih
-
-*** Yapilacaklar:
-
-        **** admin paneline giris yapilabilmesi icin index.php'deki giris yapma kodlari guncellenecek (yetkiye gore muamele).
-        **** ADMIN PANELINDEKI eksiklikler ayarlanacak (yeni urun ekleme, urun bilgileri duzenleme, uye yetkileri duzenleme)
-        * favorilere ekleme sonrasi uyari duzeltilecek, urun eger favorilerdeyse tekrar favorilere eklenemeyecek (Cikartilacak)
-
-
-        * urun detay sayfasindaki header kismi headerHesap css kodlariyla duzenlenecek
-        * girisYap.php sayfasi index.php'deki giris yapma formuna yonlendirmeli!
-
-        * kayitOl.php header kismi guncellendi css kodlari duzenlenecek
-
-        * indirimli urunler listesinde kampanya yok secenegi secili urunler listelenmeyecek!!!
-
-        *** profilim kismindan favorilerden sepete ekleme duzenlenecek (kaldirilabilir)
-
-        ** güncel siparişlerim kısmındaki sipariş detaylarında siparişteki tüm ürünlere ait görseller, miktarlar ve fiyat yer almalı
-        
-
-        siparişlerim kısmındaki bug düzeltilecek, güncel siparişim kısmında görünecek
-
-** Yapılacaklar: admin paneli: 
-                        dashboard'da admin sayfası tanıtılacak sadece
-                        kullanıcılar, ürünler, kategoriler sayfalarında isime göre filtreleme yapılabilecek
-                giriş yaptıktan sonra yetki seviyesine göre header sayfasına
-                        profilim, favoriler kısımlarına ek olarak yönetim sayfası ve sepetim sayfası kısmı eklenecek
-                sipariş detay sayfasındaki header kaldırılacak
