@@ -1,5 +1,13 @@
 <?php
+// Bu kısmı dosyanın en üstünde, çıktı başlamadan önce tutun
+session_start();
 include 'ayar.php';
+
+// Oturum kontrolü
+if (!isset($_SESSION['uyeYetki']) || $_SESSION['uyeYetki'] < 1) {
+    echo "<script>window.location.href='index.php';</script>";
+    exit;
+}
 
 if (isset($_GET['id'])) {
     $kategoriID = (int)$_GET['id'];
@@ -179,7 +187,7 @@ if (isset($_POST['urunGuncelle'])) {
     // Ürün detay güncelle
     $baglan->query("UPDATE t_urundetay SET urunDHayvanTurID=$hayvanTurID, urunDAciklama='$urunAciklama' WHERE urunDurunID=$urunID");
 
-    header("Location: adminpanel.php");
+    echo "<script>window.location.href='adminpanel.php';</script>";
     exit;
 }
 
@@ -188,7 +196,7 @@ if (isset($_POST['yetkiGuncelle'])) {
     $uyeID = (int)$_POST['uyeID'];
     $yeniYetki = (int)$_POST['yeniYetki'];
     $baglan->query("UPDATE t_uyeler SET uyeYetki = $yeniYetki WHERE uyeID = $uyeID");
-    header("Location: adminpanel.php");
+    echo "<script>window.location.href='adminpanel.php';</script>";
     exit;
 }
 
@@ -711,6 +719,15 @@ if (isset($_POST['kategoriGuncelle'])) {
     <!-- Ana Container -->
     <div class="container">
         <!-- Sidebar -->
+        <?php
+        // En üstte oturum kontrolü yap
+        if (!isset($_SESSION['uyeYetki']) || $_SESSION['uyeYetki'] < 1) {
+            header("Location: index.php");
+            exit;
+        }
+        ?>
+
+        <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <h3>PatiShop Admin</h3>
@@ -720,20 +737,26 @@ if (isset($_POST['kategoriGuncelle'])) {
             <a href="anasayfa.php" class="menu-item">
                 <i class="fa">🏘️</i> Anasayfa
             </a>
-            <a href="#dashboard" class="menu-item" onclick="showSection('dashboard')">
-                <i class="fa">🏠</i> Dashboard
-            </a>
-            <a href="#siparisler" class="menu-item" onclick="showSection('siparisler')">
-                <i class="fa">🛒</i> Siparişler
-            </a>
-            <a href="#kullanicilar" class="menu-item" onclick="showSection('kullanicilar')">
-                <i class="fa">👥</i> Kullanıcılar
-            </a>
+
+            <?php if ($_SESSION['uyeYetki'] >= 2) { // Sadece admin için göster 
+            ?>
+                <a href="#dashboard" class="menu-item" onclick="showSection('dashboard')">
+                    <i class="fa">🏠</i> Dashboard
+                </a>
+                <a href="#siparisler" class="menu-item" onclick="showSection('siparisler')">
+                    <i class="fa">🛒</i> Siparişler
+                </a>
+                <a href="#kullanicilar" class="menu-item" onclick="showSection('kullanicilar')">
+                    <i class="fa">👥</i> Kullanıcılar
+                </a>
+                <a href="#kategoriler" class="menu-item" onclick="showSection('kategoriler')">
+                    <i class="fa">🔖</i> Kategoriler
+                </a>
+            <?php } ?>
+
+            <!-- Çalışan ve admin için göster -->
             <a href="#urunler" class="menu-item" onclick="showSection('urunler')">
                 <i class="fa">📦</i> Ürünler
-            </a>
-            <a href="#kategoriler" class="menu-item" onclick="showSection('kategoriler')">
-                <i class="fa">🔖</i> Kategoriler
             </a>
             <a href="cikisYap.php" class="menu-item">
                 <i class="fa">🚪</i> Çıkış Yap
@@ -1504,12 +1527,25 @@ if (isset($_POST['kategoriGuncelle'])) {
 
     // Sayfa yüklendiğinde hash'e göre ilgili bölümü göster
     window.onload = function() {
-        const hash = window.location.hash || '#dashboard';
-        showSection(hash.replace('#', ''));
+        <?php if ($_SESSION['uyeYetki'] == 1): ?>
+            showSection('urunler');
+        <?php elseif ($_SESSION['uyeYetki'] == 2): ?>
+            showSection('dashboard');
+        <?php endif; ?>
     }
 
-    // Bölüm gösterme fonksiyonu
+    // Bölüm gösterme fonksiyonunu güncelle
     function showSection(sectionId) {
+        // Yetki kontrolü
+        <?php if ($_SESSION['uyeYetki'] == 1): ?>
+            // Çalışan için kısıtlı erişim
+            const allowedSections = ['urunler'];
+            if (!allowedSections.includes(sectionId)) {
+                alert('Bu bölüme erişim yetkiniz bulunmamaktadır.');
+                return;
+            }
+        <?php endif; ?>
+
         // Tüm bölümleri gizle
         const sections = document.querySelectorAll('.content > div');
         sections.forEach(section => {

@@ -450,17 +450,17 @@ include('ayar.php');
                                     <a href="profil.php#profile"><i class="fas fa-user-circle"></i> Profil</a>
                                     <a href="profil.php#favorites"><i class="fas fa-heart"></i> Favorilerim</a>
                                     <a href="profil.php#orders"><i class="fas fa-box"></i> Siparişlerim</a>
-                                    
+
                                     <!-- Sepet linki -->
                                     <?php if (isset($_SESSION['uyeYetki']) && $_SESSION['uyeYetki'] >= 0): ?>
-                                        <a href="profil.php#cart"><i class="fas fa-shopping-cart"></i> Sepetim 
-                                            <?php 
+                                        <a href="profil.php#cart"><i class="fas fa-shopping-cart"></i> Sepetim
+                                            <?php
                                             // Sepetteki ürün sayısını göster
                                             $uyeID = $_SESSION['uyeID'];
                                             $sepetSorgu = "SELECT COUNT(*) as urunSayisi FROM t_sepet WHERE sepetUyeID = $uyeID AND sepetGorunurluk = 1";
                                             $sepetSonuc = $baglan->query($sepetSorgu);
                                             $sepetSayi = $sepetSonuc->fetch_assoc()['urunSayisi'];
-                                            if($sepetSayi > 0) {
+                                            if ($sepetSayi > 0) {
                                                 echo "<span class='patiSepetBadge'>$sepetSayi</span>";
                                             }
                                             ?>
@@ -468,7 +468,7 @@ include('ayar.php');
                                     <?php endif; ?>
 
                                     <!-- Admin paneli linki -->
-                                    <?php if (isset($_SESSION['uyeYetki']) && $_SESSION['uyeYetki'] >= 2): ?>
+                                    <?php if (isset($_SESSION['uyeYetki']) && $_SESSION['uyeYetki'] >= 1 ): ?>
                                         <div class="patiDropdownDivider"></div>
                                         <a href="adminpanel.php"><i class="fas fa-cog"></i> Yönetim Paneli</a>
                                     <?php endif; ?>
@@ -479,7 +479,7 @@ include('ayar.php');
                             </div>
                         <?php else: ?>
                             <a href="index.php?showLoginModal=true" class="patiUserProfile">
-                               <i class="fas fa-user"></i> Giriş Yap
+                                <i class="fas fa-user"></i> Giriş Yap
                             </a>
                         <?php endif; ?>
                     </div>
@@ -572,4 +572,5 @@ include('ayar.php');
         }
     </script>
 </body>
+
 </html>

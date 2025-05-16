@@ -29,9 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['uyeSoyad'] = $user['uyeSoyad'];
             $_SESSION['uyeYetki'] = $user['uyeYetki'];
 
-            // Kullanıcı yetkisine göre yönlendirme
-            if ($user['uyeYetki'] == 2) { // Admin
-                header('Location: adminpanel.php');
+            if ($user['uyeYetki'] == 2) {
+                header('Location: anasayfa.php');
             } else { // Normal kullanıcı
                 header('Location: anasayfa.php');
             }
