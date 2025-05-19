@@ -696,11 +696,14 @@ if ($result->num_rows > 0) {
                             if (!empty($sepetIDs)) {
                                 $sepetIDString = implode(',', array_map('intval', $sepetIDs));
                                 // Sepet ürünlerini ve ürün detaylarını çek
-                                $sqlUrunler = "SELECT sp.sepetUrunID, sp.sepetUrunMiktar, sp.sepetUrunFiyat, u.urunAdi, r.resimYolu
-                                               FROM t_sepet sp
-                                               INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
-                                               LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
-                                               WHERE sp.sepetID IN ($sepetIDString)";
+                                $sqlUrunler = "SELECT sp.sepetUrunID, sp.sepetUrunMiktar, sp.sepetUrunFiyat, 
+                                                     u.urunAdi, r.resimYolu
+                                              FROM t_sepet sp
+                                              INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
+                                              LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID 
+                                              LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                                              WHERE sp.sepetID IN ($sepetIDString)
+                                              GROUP BY sp.sepetUrunID"; // Group by to prevent duplicate entries
                                 $resUrunler = $baglan->query($sqlUrunler);
                                 while ($urun = $resUrunler->fetch_assoc()) {
                                     $urunler[] = $urun;
@@ -741,8 +744,10 @@ if ($result->num_rows > 0) {
                     $sql = "SELECT f.favoriID, u.urunAdi, u.urunFiyat, r.resimYolu, f.favoriOlusturmaTarih
                             FROM t_favoriler f
                             INNER JOIN t_urunler u ON f.favoriUrunID = u.urunID
-                            LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
-                            WHERE f.favoriUyeID = $uyeID";
+                            LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                            LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                            WHERE f.favoriUyeID = $uyeID
+                            GROUP BY f.favoriID";
                     $result = $baglan->query($sql);
 
                     if ($result->num_rows > 0) {
@@ -797,10 +802,13 @@ if ($result->num_rows > 0) {
                     <h2 class="content-title">Sepetim</h2>
                     <?php
                     $sql = "SELECT sp.sepetID, u.urunAdi, u.urunFiyat, r.resimYolu, sp.sepetUrunMiktar
-            FROM t_sepet sp
-            INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
-            LEFT JOIN t_resimler r ON u.urunResimID = r.resimID
-            WHERE sp.sepetUyeID = $uyeID AND sp.sepetGorunurluk = 1"; // Sadece sepetGorunurluk = 1 olan ürünler
+                            FROM t_sepet sp
+                            INNER JOIN t_urunler u ON sp.sepetUrunID = u.urunID
+                            LEFT JOIN t_resimiliskiler ri ON u.urunID = ri.resimIliskilerEklenenID
+                            LEFT JOIN t_resimler r ON ri.resimIliskilerResimID = r.resimID
+                            WHERE sp.sepetUyeID = $uyeID 
+                            AND sp.sepetGorunurluk = 1
+                            GROUP BY sp.sepetID";
                     $result = $baglan->query($sql);
 
                     if ($result->num_rows > 0) {
